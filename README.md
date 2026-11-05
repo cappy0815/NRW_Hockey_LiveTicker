@@ -8,6 +8,8 @@ Live-Ticker für laufende Spiele im Eishockeyverband NRW – als Windows-Program
 | Version | 3.0.1 | 2.51 |
 | Download | [EXE](../../releases/latest) | [APK](../../releases/latest) |
 
+![Ticker-Fenster der Windows-Version](screenshot-windows.png)
+
 ## Funktionen
 
 - Laufende und heute noch anstehende Spiele aller NRW-Ligen, eigene Teams farbig hervorgehoben
