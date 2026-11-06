@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="de.ehvnrw.liveticker">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <application
+        android:label="EHV Live"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:theme="@android:style/Theme.Material.Light.DarkActionBar">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Display-Wecker: Meldung ueber dem Sperrbildschirm -->
+        <activity
+            android:name=".WakeActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:taskAffinity="de.ehvnrw.liveticker.wake"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen" />
+
+        <!-- Detailansicht zum Floating (lange druecken) -->
+        <activity
+            android:name=".DetailActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:taskAffinity="de.ehvnrw.liveticker.detail"
+            android:theme="@android:style/Theme.Material.Dialog.NoActionBar" />
+
+        <!-- Spielplan: Naechste / Ergebnisse / Meine Spiele -->
+        <activity
+            android:name=".ScheduleActivity"
+            android:exported="false"
+            android:label="Spielplan"
+            android:parentActivityName=".MainActivity" />
+
+        <service
+            android:name=".OverlayService"
+            android:exported="false" />
+    </application>
+</manifest>
