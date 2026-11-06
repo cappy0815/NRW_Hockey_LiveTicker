@@ -18,7 +18,7 @@ Live-Ticker für laufende Spiele im Eishockeyverband NRW – als Windows-Program
 - Steckbrief mit Halle, Route und Kalendereintrag, Ligatabelle, Aufstellung beider Teams
 - Sparsam: abgefragt werden nur Ligen, die heute spielen; der Spielplan wird höchstens alle 30 Minuten geladen
 
-**Windows:** rahmenlose, verschiebbare Ticker-Fenster (bis zu 8), Töne für Tor, Strafe, Drittelende, Spielende und Bully.  
+**Windows:** rahmenlose, verschiebbare Ticker-Fenster (bis zu 8), Töne für Tor, Strafe, Drittelende, Spielende und Bully, Schiedsrichter-Einteilung (HSR und (L)SR) aus esrw.de unter dem Stand.  
 **Android:** schwebendes Floating-Display über anderen Apps, Benachrichtigung mit Stand, Vibration, Display-Wecker über dem Sperrbildschirm, Schiedsrichter-Einteilung im Ticker (aus esrw.de), Update-Prüfung (einmal am Tag, abschaltbar; installiert wird nichts automatisch).
 
 ## Installation
@@ -32,10 +32,26 @@ Prüfsummen (SHA-256) stehen auf [cappy0815.github.io](https://cappy0815.github.
 ## Quellcode
 
 - `android/` – Android-App (Java, Build ohne Gradle über `build.sh`)
+- `windows/` – Windows-Programm (Go, nur Standardbibliothek, ohne Fremdpakete)
 
-## Updates (Android)
+### Windows selbst bauen
 
-Die App liest die Versionsdatei [`downloads/ehv-live.json`](https://cappy0815.github.io/downloads/ehv-live.json) auf cappy0815.github.io, als Rückfall das neueste Release dieses Repos. Gesendet wird nur eine normale Abfrage, keine Daten aus der App.
+Go ab 1.24 und Python 3. Im Ordner `windows/`:
+
+```
+python3 mkres.py 3.1.0.0 ehv_ticker.ico
+GOOS=windows GOARCH=amd64 go build -trimpath -ldflags "-H windowsgui" -o EHV_NRW_LiveTicker.exe .
+```
+
+`mkres.py` erzeugt Versionsinfo, Manifest und Icon als Ressource für den Linker (ohne rc.exe).
+## Updates
+
+Beide Programme prüfen einmal am Tag, ob es eine neue Version gibt (abschaltbar in den Optionen). Ist eine neue da, erscheint ein Knopf „Update“, der die Download-Seite öffnet – installiert wird nichts automatisch.
+
+- Android liest die Versionsdatei [`downloads/ehv-live.json`](https://cappy0815.github.io/downloads/ehv-live.json)
+- Windows liest [`downloads/ehv-live-win.json`](https://cappy0815.github.io/downloads/ehv-live-win.json)
+
+Als Rückfall dient jeweils das neueste Release dieses Repos (Windows: Tag `WIN_v…`, Android: `APK_v…`). Gesendet wird nur eine normale Abfrage mit der Versionsnummer, keine Daten aus dem Programm.
 
 ## Hinweis
 
