@@ -536,6 +536,10 @@ public class MainActivity extends Activity {
         item(box, "\u2B50", "„Meine“: kommende Spiele und letzte Ergebnisse der hervorgehobenen Teams (Optionen → Hervorhebung)");
         item(box, "\uD83D\uDCCA", "„Tabellen“: alle Ligen nach Altersklasse, Ligen der eigenen Teams oben – antippen zeigt die Tabelle");
         item(box, "\u2194", "Nach links/rechts wischen wechselt den Reiter, „Zurück“ führt zur Live-Liste, \u21BB lädt den Spielplan neu");
+        section(box, "Livestream (RED+)");
+        item(box, "\u25B6", "Hat ein Spiel einen RED+-Stream, steht „▶ RED+“ in der Liste. In den Spiel-Details "
+                + "(Spielplan antippen bzw. Floating lange drücken) öffnet der Knopf „Watch on RED+“ das Spiel im Browser. "
+                + "Ohne direkten Link öffnet sich das RED+-Tagesprogramm. Abschaltbar in den Optionen unter „Livestream“.");
         item(box, "\uD83D\uDC46", "Spiel antippen: Steckbrief mit Halle, Drittelergebnissen und Torschützen");
         item(box, "\uD83D\uDCCD", "Halle antippen öffnet die Route in der Karten-App, „Kalender“ trägt das Spiel ein, „Tabelle“ zeigt die Liga");
         item(box, "\u2753", "Läuft heute nichts mehr, erscheint in der Liste der Knopf „Nächste Spiele anzeigen“");
@@ -614,9 +618,6 @@ public class MainActivity extends Activity {
         credits.setGravity(Gravity.CENTER);
         credits.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.ITALIC));
         box.addView(credits, new LinearLayout.LayoutParams(-1, -2));
-        TextView more = text("Mehr Projekte und Downloads: cappy0815.github.io", 12, C_MUTED, false);
-        more.setGravity(Gravity.CENTER);
-        box.addView(more, new LinearLayout.LayoutParams(-1, -2));
 
         FrameLayout frame = withScrollHint(sv);
 
@@ -672,6 +673,8 @@ public class MainActivity extends Activity {
 
     // ------------------------------------------------------------------ Changelog
     private static final String[][] CHANGELOG = {
+            {"2.8", "RED+-Livestream: Knopf „Watch on RED+“ in den Spiel-Details, „▶ RED+“ in den Listen\n"
+                    + "Abschaltbar in den Optionen unter „Livestream“"},
             {"2.71", "Reiterleiste mit modernen Linien-Symbolen, aktiver Reiter grün hinterlegt"},
             {"2.7", "Neue Reiter unten: Live · Spielplan · Meine · Tabellen – wischen zum Wechseln\n"
                     + "„Tabellen“: alle Ligen nach Altersklasse, Ligen der eigenen Teams oben\n"
@@ -856,6 +859,13 @@ public class MainActivity extends Activity {
         TextView hint = text("mehrere Begriffe mit Komma trennen, z. B.  Neuss, Moers", 12, C_MUTED, false);
         box.addView(hint);
 
+        section(box, "Livestream");
+        final Switch swStream = toggle("RED+-Link anzeigen, wenn vorhanden", Prefs.streamOn(this));
+        box.addView(swStream);
+        box.addView(text("Knopf „Watch on RED+“ in den Spiel-Details und „▶ RED+“ in den Listen. "
+                + "Der Link kommt aus dem EHV-Spielplan; Ansehen über die RED+-Seite (ggf. kostenpflichtig).",
+                12, C_MUTED, false));
+
         final Switch[] swUpd = new Switch[1];
         updateSection(box, swUpd);
 
@@ -877,6 +887,7 @@ public class MainActivity extends Activity {
                                 swVib.isChecked(), swFav.isChecked(), etFav.getText().toString().trim());
                         Prefs.saveUpcoming(MainActivity.this, swRemind.isChecked(), swStart.isChecked());
                         Update.setAuto(MainActivity.this, swUpd[0].isChecked());
+                        Prefs.setStreamOn(MainActivity.this, swStream.isChecked());
                         Prefs.saveWake(MainActivity.this, swWake.isChecked(), swSound.isChecked());
                         Prefs.saveFloat(MainActivity.this,
                                 Prefs.INFO_STEPS[spInfo.getSelectedItemPosition()],
@@ -1218,7 +1229,8 @@ public class MainActivity extends Activity {
             setAlpha(g.type == 1 && !pend ? 0.55f : 1f);
             teams.setText(g.homeName + "\n" + g.awayName);
             boolean pinned = OverlayService.liveGame(g.id) != null;
-            String ph = g.phaseText() + (g.type == 1 && !g.arenaShort.isEmpty() ? " · \uD83D\uDCCD " + g.arenaShort : "");
+            String ph = g.phaseText() + (g.type == 1 && !g.arenaShort.isEmpty() ? " · \uD83D\uDCCD " + g.arenaShort : "")
+                    + GameSheet.streamTag(MainActivity.this, g);
             info.setText(pinned ? "\uD83D\uDCCC angepinnt · " + ph
                     : pend ? "\u23F0 vorgemerkt · " + ph : ph);
             info.setTextColor(pend ? Color.rgb(200, 110, 0) : Color.rgb(0, 110, 190));

@@ -28,6 +28,7 @@ public class DetailActivity extends Activity {
     private static final String EX_ID = "id";
     private final Handler ui = new Handler(Looper.getMainLooper());
     private String gameId;
+    private LinearLayout streamBox;
     private TextView tvTitle, tvScore, tvPhase, tvEvents, tvWakeHint, tvArena, tvRefs;
     private Switch swWake;
 
@@ -71,6 +72,10 @@ public class DetailActivity extends Activity {
         tvRefs = text(13, Color.rgb(200, 200, 200), false);
         tvRefs.setPadding(0, dp(4), 0, 0);
         root.addView(tvRefs);
+        // v2.8: Livestream-Knopf (RED+), wird in bind() einmalig gefüllt
+        streamBox = new LinearLayout(this);
+        streamBox.setGravity(Gravity.CENTER_HORIZONTAL);
+        root.addView(streamBox, new LinearLayout.LayoutParams(-1, -2));
         tvArena = text(13, Color.rgb(127, 211, 255), false);
         tvArena.setPadding(0, dp(4), 0, 0);
         tvArena.setOnClickListener(new View.OnClickListener() {
@@ -207,6 +212,10 @@ public class DetailActivity extends Activity {
         tvPhase.setText(g.phaseText());
         tvRefs.setText(g.refs.isEmpty() ? "" : "\uD83E\uDDD1\u200D\u2696\uFE0F " + g.refs);
         tvRefs.setVisibility(g.refs.isEmpty() ? View.GONE : View.VISIBLE);
+        if (streamBox.getChildCount() == 0) {
+            View sv = GameSheet.streamView(this, g, true);
+            if (sv != null) streamBox.addView(sv, new LinearLayout.LayoutParams(-1, -2));
+        }
         tvWakeHint.setText("Standard in den Optionen: " + (Prefs.wakeOn(this) ? "an" : "aus")
                 + " – dieser Schalter gilt nur für dieses Spiel (mit Ton, falls in den Optionen an)");
         StringBuilder sb = new StringBuilder();

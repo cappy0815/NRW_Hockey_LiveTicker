@@ -33,6 +33,19 @@ public class Game {
     public String periods = "";   // "(0:0,0:1,0:3)"
     public String homeScorers = "", awayScorers = "";
     public boolean overtime, shootout;
+    // v2.8: Livestream aus "streams"/"broadcasters" der Schedule-Abfrage (z. B. RED+)
+    public String streamUrl = "";   // direkter Link zum Spiel (redirect.red.sport/…)
+    public String streamDay = "";   // nur Tagesprogramm des Senders (wenn kein direkter Link)
+    public String streamName = "";  // "RED+" o. ä.
+
+    public boolean hasStream() {
+        return !streamUrl.isEmpty() || !streamDay.isEmpty();
+    }
+
+    public boolean isRedPlus() {
+        String u = streamUrl.isEmpty() ? streamDay : streamUrl;
+        return u.contains("red.sport") || streamName.toUpperCase(java.util.Locale.ROOT).startsWith("RED");
+    }
 
     /** Aus einer Zeile der Schedule-Abfrage. */
     public static Game fromScheduleRow(JSONObject r) {
@@ -61,6 +74,7 @@ public class Game {
         g.shootout = r.optBoolean("isShootOut", false);
         g.homeScorers = scorers(r.optJSONObject("homeScorers"));
         g.awayScorers = scorers(r.optJSONObject("awayScorers"));
+        readStream(g, r);
         JSONObject loc = r.optJSONObject("location");
         if (loc != null) {
             g.arenaShort = loc.optString("shortname", "");
@@ -75,6 +89,41 @@ public class Game {
             }
         }
         return g;
+    }
+
+    /**
+     * "streams": Liste von JSON-Texten {"targetUrl":"https://redirect.red.sport/…","imgUrl":"…watch_on_red_plus.png"}.
+     * "broadcasters": [{"broadcasterName":"RED+ (DE)","gameBroadcastUrl":"https://red.sport/de-de/schedule?date=…"}].
+     * Am 07.11.2026 an echten Spielen geprueft (ECL – NEV: redirect -> red.sport/de-de/livestream/match/…).
+     */
+    private static void readStream(Game g, JSONObject r) {
+        org.json.JSONArray st = r.optJSONArray("streams");
+        if (st != null) {
+            for (int i = 0; i < st.length() && g.streamUrl.isEmpty(); i++) {
+                Object o = st.opt(i);
+                JSONObject j = o instanceof JSONObject ? (JSONObject) o : null;
+                if (j == null && o instanceof String) {
+                    try {
+                        j = new JSONObject((String) o);
+                    } catch (JSONException ignored) {
+                    }
+                }
+                if (j != null) {
+                    String u = j.optString("targetUrl", "").trim();
+                    if (u.startsWith("http")) g.streamUrl = u;
+                }
+            }
+        }
+        org.json.JSONArray bc = r.optJSONArray("broadcasters");
+        if (bc != null && bc.length() > 0) {
+            JSONObject b = bc.optJSONObject(0);
+            if (b != null) {
+                g.streamName = b.optString("broadcasterName", "").replaceAll("\\s*\\(.*\\)$", "").trim();
+                String u = b.optString("gameBroadcastUrl", "").trim();
+                if (u.startsWith("http")) g.streamDay = u;
+            }
+        }
+        if (g.streamName.isEmpty() && g.streamUrl.contains("red.sport")) g.streamName = "RED+";
     }
 
     /** {"rows":["E. JUNEMANN (2)","T. ORTH "]} -> "E. JUNEMANN (2), T. ORTH" */
@@ -152,6 +201,7 @@ public class Game {
             o.put("divisionId", divisionId); o.put("startMs", startMs); o.put("dateText", dateText);
             o.put("arenaShort", arenaShort); o.put("arenaLong", arenaLong); o.put("arenaAddress", arenaAddress);
             o.put("refs", refs);
+            o.put("streamUrl", streamUrl); o.put("streamDay", streamDay); o.put("streamName", streamName);
         } catch (JSONException ignored) {
         }
         return o;
@@ -170,6 +220,7 @@ public class Game {
             g.divisionId = o.optString("divisionId", ""); g.startMs = o.optLong("startMs", 0); g.dateText = o.optString("dateText", "");
             g.arenaShort = o.optString("arenaShort", ""); g.arenaLong = o.optString("arenaLong", ""); g.arenaAddress = o.optString("arenaAddress", "");
             g.refs = o.optString("refs", "");
+            g.streamUrl = o.optString("streamUrl", ""); g.streamDay = o.optString("streamDay", ""); g.streamName = o.optString("streamName", "");
         } catch (JSONException ignored) {
         }
         return g;

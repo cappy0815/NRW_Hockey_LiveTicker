@@ -365,7 +365,8 @@ class SchedulePane extends LinearLayout {
             awayTxt.setText(g.awayName);
             GameSheet.loadImage(homeImg, g.homeLogo);
             GameSheet.loadImage(awayImg, g.awayLogo);
-            sub.setText(GameSheet.leagueShort(g) + (g.arenaShort.isEmpty() ? "" : "  ·  📍 " + g.arenaShort));
+            sub.setText(GameSheet.leagueShort(g) + (g.arenaShort.isEmpty() ? "" : "  ·  📍 " + g.arenaShort)
+                    + GameSheet.streamTag(a, g));
         }
     }
 }

@@ -168,7 +168,24 @@ public final class Api {
         pool.shutdown();
         lastFailed = errors;
         if (errors == futures.size()) throw new Exception("Server nicht erreichbar (hockeydata.net)");
+        streamsFromSeason(all);
         return all;
+    }
+
+    /** v2.8: fehlt der Stream-Link in der Live-Abfrage, aus dem Saisonplan-Speicher ergänzen (keine Abfrage) */
+    static void streamsFromSeason(List<Game> games) {
+        List<Game> s = seasonCache;
+        if (s.isEmpty()) return;
+        java.util.HashMap<String, Game> byId = new java.util.HashMap<>();
+        for (Game x : s) byId.put(x.id, x);
+        for (Game g : games) {
+            if (g.hasStream()) continue;
+            Game x = byId.get(g.id);
+            if (x == null) continue;
+            g.streamUrl = x.streamUrl;
+            g.streamDay = x.streamDay;
+            g.streamName = x.streamName;
+        }
     }
 
     // ------------------------------------------------------------------ Spielplan (ganze Saison)

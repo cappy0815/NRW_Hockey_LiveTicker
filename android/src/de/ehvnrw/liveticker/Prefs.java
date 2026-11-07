@@ -109,6 +109,15 @@ public final class Prefs {
                 .putBoolean("minimizeOnPin", minimize).remove("collapseSec").remove("detailSec").apply();
     }
 
+    /** v2.8: Livestream-Knopf (RED+) im Steckbrief/Detailfenster und Hinweis in den Listen */
+    public static boolean streamOn(Context c) {
+        return sp(c).getBoolean("streamOn", true);
+    }
+
+    public static void setStreamOn(Context c, boolean on) {
+        sp(c).edit().putBoolean("streamOn", on).apply();
+    }
+
     public static boolean favOn(Context c) {
         return sp(c).getBoolean("favOn", true);
     }

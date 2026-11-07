@@ -77,6 +77,60 @@ final class GameSheet {
     private GameSheet() {
     }
 
+    // ------------------------------------------------------------------ Livestream (v2.8)
+    /**
+     * Knopf zum Livestream (RED+-Logo „WATCH ON RED+“, sonst Textknopf) oder null, wenn kein Link
+     * vorhanden bzw. in den Optionen ausgeschaltet. Ohne direkten Link: Tagesprogramm des Senders.
+     */
+    static View streamView(final Activity a, final Game g, boolean dark) {
+        if (!Prefs.streamOn(a) || !g.hasStream()) return null;
+        final String url = g.streamUrl.isEmpty() ? g.streamDay : g.streamUrl;
+        LinearLayout box = new LinearLayout(a);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setGravity(Gravity.CENTER_HORIZONTAL);
+        box.setPadding(0, dp(a, 10), 0, 0);
+        View btn;
+        if (g.isRedPlus()) {
+            android.widget.ImageView iv = new android.widget.ImageView(a);
+            iv.setImageResource(R.drawable.red_plus);
+            iv.setAdjustViewBounds(true);
+            iv.setContentDescription("Auf RED+ ansehen");
+            btn = iv;
+            box.addView(iv, new LinearLayout.LayoutParams(dp(a, 190), -2));
+        } else {
+            Button b = new Button(a);
+            b.setText("\u25B6  " + (g.streamName.isEmpty() ? "Livestream" : g.streamName));
+            Ui.pill(b, Ui.RED);
+            btn = b;
+            box.addView(b, new LinearLayout.LayoutParams(-2, -2));
+        }
+        btn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try {
+                    a.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+                } catch (Exception e) {
+                    Toast.makeText(a, "Kein Browser gefunden", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+        if (g.streamUrl.isEmpty()) {
+            TextView t = new TextView(a);
+            t.setText("kein direkter Link – öffnet das Tagesprogramm");
+            t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+            t.setTextColor(dark ? Color.rgb(170, 170, 170) : Color.rgb(110, 116, 124));
+            t.setPadding(0, dp(a, 3), 0, 0);
+            box.addView(t);
+        }
+        return box;
+    }
+
+    /** kurzer Hinweis für Listenzeilen: " · ▶ RED+" (leer, wenn kein Stream oder ausgeschaltet) */
+    static String streamTag(android.content.Context c, Game g) {
+        if (!Prefs.streamOn(c) || !g.hasStream()) return "";
+        return "  ·  \u25B6 " + (g.streamName.isEmpty() ? "Stream" : g.streamName);
+    }
+
     private static int dp(Activity a, int v) {
         return Math.round(v * a.getResources().getDisplayMetrics().density);
     }
@@ -160,6 +214,9 @@ final class GameSheet {
             });
             box.addView(arena);
         }
+
+        View stream = streamView(a, g, false);
+        if (stream != null) box.addView(stream, new LinearLayout.LayoutParams(-1, -2));
 
         // Knoepfe (mittig): Kalender (nur kommende Spiele), Tabelle – Route = Halle antippen
         LinearLayout btns = new LinearLayout(a);
