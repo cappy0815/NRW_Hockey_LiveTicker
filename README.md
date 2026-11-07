@@ -5,8 +5,8 @@ Live-Ticker für laufende Spiele im Eishockeyverband NRW – als Windows-Program
 | | Windows | Android |
 |---|---|---|
 | Name | EHV-NRW Live-Ticker | EHV Live |
-| Version | 3.5 | 2.82 |
-| Download | [EXE v3.5](https://cappy0815.github.io/downloads/EHV_NRW_LiveTicker_v3.5.exe) | [APK v2.82](https://cappy0815.github.io/downloads/EHV-Live-v2.82.apk) |
+| Version | 3.5 | 2.9 |
+| Download | [EXE v3.5](https://cappy0815.github.io/downloads/EHV_NRW_LiveTicker_v3.5.exe) | [APK v2.9](https://cappy0815.github.io/downloads/EHV-Live-v2.9.apk) |
 
 ![Ticker-Fenster der Windows-Version](screenshot-windows.png)
 
@@ -19,7 +19,7 @@ Live-Ticker für laufende Spiele im Eishockeyverband NRW – als Windows-Program
 - Sparsam: abgefragt werden nur Ligen, die heute spielen; der Spielplan wird höchstens alle 30 Minuten geladen
 
 **Windows:** rahmenlose, verschiebbare Ticker-Fenster (bis zu 8), Töne für Tor, Strafe, Drittelende, Spielende und Bully, Schiedsrichter-Einteilung (HSR und (L)SR) aus esrw.de unter dem Stand, Spielplan mit Reiter „Tabellen“ (alle Ligen nach Altersklasse), RED+-Button mit Logo im Spiel-Steckbrief (abschaltbar unter Optionen › LINKS).  
-**Android:** Reiter Live · Spielplan · Meine · Tabellen (wischen zum Wechseln), schwebendes Floating-Display über anderen Apps, Benachrichtigung mit Stand, Vibration, Display-Wecker über dem Sperrbildschirm, Schiedsrichter-Einteilung im Ticker (aus esrw.de), RED+-Livestream-Link mit Logo (abschaltbar), Update-Prüfung (einmal am Tag, abschaltbar; installiert wird nichts automatisch).
+**Android:** Reiter Live · Spielplan · Meine · Tabellen (wischen zum Wechseln), schwebendes Floating-Display über anderen Apps, Benachrichtigung mit Stand, Vibration, Display-Wecker über dem Sperrbildschirm, Schiedsrichter-Einteilung im Ticker (aus esrw.de), RED+-Livestream-Link mit Logo (abschaltbar), Liga-Statistik (Scorer, Torhüter, Strafen) und Topscorer-Stern in der Aufstellung, Update-Prüfung (einmal am Tag, abschaltbar; installiert wird nichts automatisch).
 
 ## Installation
 

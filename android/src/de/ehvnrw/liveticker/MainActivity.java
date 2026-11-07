@@ -544,6 +544,11 @@ public class MainActivity extends Activity {
         item(box, "\u2B50", "„Meine“: kommende Spiele und letzte Ergebnisse der hervorgehobenen Teams (Optionen → Hervorhebung)");
         item(box, "\uD83D\uDCCA", "„Tabellen“: alle Ligen nach Altersklasse, Ligen der eigenen Teams oben – antippen zeigt die Tabelle");
         item(box, "\u2194", "Nach links/rechts wischen wechselt den Reiter, „Zurück“ führt zur Live-Liste, \u21BB lädt den Spielplan neu");
+        section(box, "Statistik (v2.9)");
+        item(box, "\uD83D\uDCCA", "Tabelle einer Liga: oben umschalten oder wischen zwischen Tabelle · Scorer · Torhüter · Strafen "
+                + "(gesamte Liga, wie auf ehv-nrw.de). Spieler hervorgehobener Teams sind gelb markiert.");
+        item(box, "\u2606", "Aufstellung: Stern mit 1, 2 oder 3 vor dem Namen = Topscorer des Teams in dieser Liga "
+                + "(Punkte der Saison). T/A/SM daneben zählen nur das aktuelle Spiel.");
         section(box, "Livestream (RED+)");
         item(box, "\u25B6", "Hat ein Spiel einen RED+-Stream, steht das RED+-Logo in der Live-, Spielplan- und Meine-Liste – antippen öffnet den Stream. In den Spiel-Details "
                 + "(Spielplan antippen bzw. Floating lange drücken) öffnet der Knopf „Watch on RED+“ das Spiel im Browser. "
@@ -684,6 +689,8 @@ public class MainActivity extends Activity {
 
     // ------------------------------------------------------------------ Changelog
     private static final String[][] CHANGELOG = {
+            {"2.9", "Tabelle mit wischbaren Seiten Scorer · Torhüter · Strafen der ganzen Liga\n"
+                    + "Aufstellung: Topscorer 1–3 je Team mit Stern markiert"},
             {"2.82", "Optionen: Knöpfe „Jetzt prüfen“/„Download“ und Speichern/Abbrechen sauber nebeneinander, "
                     + "„App beenden“ als eigener Knopf ganz unten"},
             {"2.81", "RED+-Logo auch in Live-, Spielplan- und Meine-Liste (antippen öffnet den Stream)\n"

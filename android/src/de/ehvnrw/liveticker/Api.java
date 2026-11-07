@@ -307,6 +307,37 @@ public final class Api {
         return out;
     }
 
+    // ------------------------------------------------------------------ Spielerstatistik (v2.9)
+    private static final java.util.HashMap<String, List<JSONObject>> LEADERS = new java.util.HashMap<>();
+    private static final java.util.HashMap<String, Long> LEADERS_AT = new java.util.HashMap<>();
+
+    /**
+     * Liga-Statistik wie auf ehv-nrw.de (Widget hockeydata.los.Leaders): type = "FieldPlayers" (Scorer),
+     * "Goalkeepers" oder "BadBoys". Endpunkt "Leader" + type, am 07.11.2026 geprueft. Rund 400 KB je Liga,
+     * deshalb nur auf Abruf und 30 Min. im Speicher.
+     */
+    static List<JSONObject> leaders(String divisionId, String type) throws Exception {
+        String key = divisionId + "/" + type;
+        synchronized (LEADERS) {
+            Long at = LEADERS_AT.get(key);
+            if (at != null && System.currentTimeMillis() - at < SEASON_MS) return LEADERS.get(key);
+        }
+        loadConfig();
+        JSONObject o = apiGet("Leader" + type, "divisionId=" + divisionId);
+        JSONObject data = o.optJSONObject("data");
+        JSONArray rows = data == null ? null : data.optJSONArray("rows");
+        List<JSONObject> out = new ArrayList<>();
+        if (rows != null) for (int i = 0; i < rows.length(); i++) {
+            JSONObject r = rows.optJSONObject(i);
+            if (r != null) out.add(r);
+        }
+        synchronized (LEADERS) {
+            LEADERS.put(key, out);
+            LEADERS_AT.put(key, System.currentTimeMillis());
+        }
+        return out;
+    }
+
     /** Kompletter Spielbericht (fuer die Aufstellung). */
     static JSONObject reportData(String gameId) throws Exception {
         loadConfig();

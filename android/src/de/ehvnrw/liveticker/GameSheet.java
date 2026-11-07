@@ -365,67 +365,209 @@ final class GameSheet {
     }
 
     // ------------------------------------------------------------------ Tabelle
+    // ------------------------------------------------------------------ Tabelle + Liga-Statistik (v2.9)
+    private static final String[] STAT_NAMES = {"Tabelle", "Scorer", "Torhüter", "Strafen"};
+
+    /** Container, der waagerechtes Wischen erkennt, ohne das senkrechte Scrollen zu stören */
+    private static class SwipeFrame extends android.widget.FrameLayout {
+        android.view.GestureDetector gd;
+
+        SwipeFrame(Activity a) {
+            super(a);
+        }
+
+        @Override
+        public boolean dispatchTouchEvent(android.view.MotionEvent ev) {
+            if (gd != null) gd.onTouchEvent(ev);
+            return super.dispatchTouchEvent(ev);
+        }
+    }
+
+    /**
+     * Tabelle einer Liga, seit v2.9 mit wischbaren Seiten Scorer · Torhüter · Strafen (gesamte Liga).
+     * Reihenfolge der Statistik-Listen wie von hockeydata/ehv-nrw.de geliefert. Jede Seite lädt erst beim Öffnen.
+     */
     static void standings(final Activity a, final String divisionId, String title) {
         final LinearLayout box = new LinearLayout(a);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(dp(a, 16), dp(a, 16), dp(a, 16), dp(a, 4));
-        box.addView(text(a, "Tabelle", 18, C_TEXT, true));
+        final TextView head = text(a, "Tabelle", 18, C_TEXT, true);
+        box.addView(head);
         box.addView(text(a, title, 12, C_MUTED, false));
-        final TextView state = text(a, "Lade Tabelle …", 13, C_MUTED, false);
+
+        final Button[] seg = new Button[4];
+        LinearLayout segRow = new LinearLayout(a);
+        segRow.setPadding(0, dp(a, 8), 0, dp(a, 4));
+        final LinearLayout[] pages = new LinearLayout[4];
+        final boolean[] loaded = new boolean[4];
+        final int[] cur = {0};
+        final java.util.Map<String, String> teamNames = new java.util.HashMap<>(); // teamId -> Langname (Hervorhebung)
+        final android.widget.FrameLayout pageFrame = new android.widget.FrameLayout(a);
+        final Runnable[] select = new Runnable[1];
+        final int[] want = {0};
+        select[0] = new Runnable() {
+            @Override
+            public void run() {
+                int t = want[0];
+                cur[0] = t;
+                head.setText(STAT_NAMES[t]);
+                for (int i = 0; i < 4; i++) {
+                    pages[i].setVisibility(i == t ? View.VISIBLE : View.GONE);
+                    if (i == t) Ui.pill(seg[i], Ui.GREEN);
+                    else Ui.outline(seg[i], Ui.DARK);
+                    seg[i].setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+                    seg[i].setPadding(dp(a, 2), dp(a, 6), dp(a, 2), dp(a, 6));
+                }
+                if (!loaded[t]) {
+                    loaded[t] = true;
+                    loadStatPage(a, divisionId, t, pages[t], teamNames);
+                }
+            }
+        };
+        for (int i = 0; i < 4; i++) {
+            final int t = i;
+            seg[i] = new Button(a);
+            seg[i].setText(STAT_NAMES[i]);
+            seg[i].setSingleLine(true);
+            seg[i].setMinWidth(0);
+            seg[i].setMinimumWidth(0);
+            seg[i].setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    want[0] = t;
+                    select[0].run();
+                }
+            });
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1f);
+            lp.leftMargin = dp(a, 2);
+            lp.rightMargin = dp(a, 2);
+            segRow.addView(seg[i], lp);
+            pages[i] = new LinearLayout(a);
+            pages[i].setOrientation(LinearLayout.VERTICAL);
+            pageFrame.addView(pages[i], new android.widget.FrameLayout.LayoutParams(-1, -2));
+        }
+        box.addView(segRow, new LinearLayout.LayoutParams(-1, -2));
+        box.addView(pageFrame, new LinearLayout.LayoutParams(-1, -2));
+
+        ScrollView sv = new ScrollView(a);
+        sv.setScrollbarFadingEnabled(false);
+        sv.addView(box);
+        SwipeFrame frame = new SwipeFrame(a);
+        frame.addView(sv);
+        frame.gd = new android.view.GestureDetector(a, new android.view.GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onFling(android.view.MotionEvent e1, android.view.MotionEvent e2, float vx, float vy) {
+                if (e1 == null || e2 == null) return false;
+                float dx = e2.getX() - e1.getX(), dy = e2.getY() - e1.getY();
+                if (Math.abs(dx) < dp(a, 80) || Math.abs(dx) < Math.abs(dy) * 2 || Math.abs(vx) < 500) return false;
+                int t = cur[0] + (dx < 0 ? 1 : -1);
+                if (t < 0 || t > 3) return false;
+                want[0] = t;
+                select[0].run();
+                return true;
+            }
+        });
+        Ui.dialog(new AlertDialog.Builder(a, THEME).setView(frame).setPositiveButton("Schließen", null).show());
+        want[0] = 0;
+        select[0].run();
+    }
+
+    /** Lädt eine Seite (0 Tabelle, 1 Scorer, 2 Torhüter, 3 Strafen) im Hintergrund und füllt sie */
+    private static void loadStatPage(final Activity a, final String divisionId, final int page, final LinearLayout box,
+                                     final java.util.Map<String, String> teamNames) {
+        final TextView state = text(a, page == 0 ? "Lade Tabelle …" : "Lade Statistik der Liga …", 13, C_MUTED, false);
         state.setPadding(0, dp(a, 12), 0, dp(a, 12));
         box.addView(state);
         final TableLayout table = new TableLayout(a);
         table.setColumnStretchable(1, true);
         table.setColumnShrinkable(1, true);
         box.addView(table, new LinearLayout.LayoutParams(-1, -2));
-        final TextView note = text(a, "Team = Kürzel wie in Liste und Floating · S / N inklusive Verlängerung und Penaltyschießen", 11, C_MUTED, false);
-        note.setPadding(0, dp(a, 8), 0, 0);
-        note.setVisibility(View.GONE);
-        box.addView(note);
-
-        ScrollView sv = new ScrollView(a);
-        sv.setScrollbarFadingEnabled(false);
-        sv.addView(box);
-        Ui.dialog(new AlertDialog.Builder(a, THEME).setView(sv).setPositiveButton("Schließen", null).show());
-
+        final String[] types = {null, "FieldPlayers", "Goalkeepers", "BadBoys"};
         final Handler ui = new Handler(Looper.getMainLooper());
         new Thread(new Runnable() {
             @Override
             public void run() {
-                List<JSONObject> rows = null;
+                List<JSONObject> rows = null, teams = null;
                 String err = null;
                 try {
-                    rows = Api.standings(divisionId);
+                    synchronized (teamNames) {
+                        if (teamNames.isEmpty() || page == 0) teams = Api.standings(divisionId);
+                    }
+                    rows = page == 0 ? teams : Api.leaders(divisionId, types[page]);
                 } catch (Exception e) {
                     err = e.getMessage();
                 }
-                final List<JSONObject> fRows = rows;
+                final List<JSONObject> fRows = rows, fTeams = teams;
                 final String fErr = err;
                 ui.post(new Runnable() {
                     @Override
                     public void run() {
+                        if (fTeams != null) synchronized (teamNames) {
+                            for (JSONObject t : fTeams) teamNames.put(t.optString("id", ""), t.optString("teamLongname", ""));
+                        }
                         if (fRows == null || fRows.isEmpty()) {
-                            state.setText(fErr != null ? "Keine Verbindung (" + fErr + ")" : "Für diese Liga gibt es (noch) keine Tabelle.");
+                            state.setText(fErr != null ? "Keine Verbindung (" + fErr + ")"
+                                    : page == 0 ? "Für diese Liga gibt es (noch) keine Tabelle." : "Für diese Liga gibt es (noch) keine Statistik.");
                             return;
                         }
                         state.setVisibility(View.GONE);
-                        table.addView(row(a, true, false, null, "#", "Team", "Sp", "S", "N", "Tore", "Pkt"));
-                        for (JSONObject r : fRows) {
-                            String team = r.optString("teamLongname", "");
-                            String shortName = r.optString("teamShortname", team);
-                            int s = r.optInt("gamesWon") + r.optInt("gamesWonInOt");
-                            int n = r.optInt("gamesLost") + r.optInt("gamesLostInOt");
-                            table.addView(row(a, false, Prefs.isFavName(a, team), Api.logoUrl(r.optString("id", "")),
-                                    r.optString("tableRank", ""), shortName.isEmpty() ? team : shortName, r.optString("gamesPlayed", ""),
-                                    String.valueOf(s), String.valueOf(n),
-                                    r.optInt("goalsFor") + ":" + r.optInt("goalsAgainst"),
-                                    r.optString("points", "")));
-                        }
-                        note.setVisibility(View.VISIBLE);
+                        fillStatPage(a, page, table, fRows, teamNames);
+                        String n = page == 0 ? "Team = Kürzel wie in Liste und Floating · S / N inklusive Verlängerung und Penaltyschießen"
+                                : page == 1 ? "Sp = Spiele · T = Tore · A = Assists · P = Punkte · SM = Strafminuten · Top 50 der Liga"
+                                : page == 2 ? "Sp = Spiele · GT = Gegentore · Ø = Gegentore je Spiel · Sv% = Fangquote (nur, wo Schüsse erfasst sind)"
+                                : "Sp = Spiele · SM = Strafminuten · 2′ / 5′ = kleine / große Strafen · D = Disziplinar- und Matchstrafen · Top 50";
+                        TextView note = text(a, n + (page == 0 ? "" : "\nQuelle: Liga-Statistik ehv-nrw.de · wischen für die nächste Seite"), 11, C_MUTED, false);
+                        note.setPadding(0, dp(a, 8), 0, 0);
+                        box.addView(note);
                     }
                 });
             }
         }).start();
+    }
+
+    private static void fillStatPage(Activity a, int page, TableLayout table, List<JSONObject> rows, java.util.Map<String, String> teamNames) {
+        if (page == 0) {
+            table.addView(row(a, true, false, null, "#", "Team", "Sp", "S", "N", "Tore", "Pkt"));
+            for (JSONObject r : rows) {
+                String team = r.optString("teamLongname", "");
+                String shortName = r.optString("teamShortname", team);
+                int s = r.optInt("gamesWon") + r.optInt("gamesWonInOt");
+                int n = r.optInt("gamesLost") + r.optInt("gamesLostInOt");
+                table.addView(row(a, false, Prefs.isFavName(a, team), Api.logoUrl(r.optString("id", "")),
+                        r.optString("tableRank", ""), shortName.isEmpty() ? team : shortName, r.optString("gamesPlayed", ""),
+                        String.valueOf(s), String.valueOf(n),
+                        r.optInt("goalsFor") + ":" + r.optInt("goalsAgainst"),
+                        r.optString("points", "")));
+            }
+            return;
+        }
+        if (page == 1) table.addView(row(a, true, false, null, "#", "Spieler", "Sp", "T", "A", "P", "SM"));
+        else if (page == 2) table.addView(row(a, true, false, null, "#", "Spieler", "Sp", "GT", "Ø", "Sv%"));
+        else table.addView(row(a, true, false, null, "#", "Spieler", "Sp", "SM", "2′", "5′", "D"));
+        int max = page == 2 ? rows.size() : Math.min(50, rows.size());
+        for (int i = 0; i < max; i++) {
+            JSONObject r = rows.get(i);
+            String teamId = r.optString("teamId", "");
+            String longName = teamNames.get(teamId);
+            boolean fav = longName != null && Prefs.isFavName(a, longName);
+            String name = r.optString("playerLastname", "") + " " + r.optString("playerFirstname", "").trim();
+            String who = name.trim() + " · " + r.optString("teamShortname", "");
+            String logo = Api.logoUrl(teamId);
+            String rank = String.valueOf(i + 1);
+            if (page == 1) {
+                table.addView(row(a, false, fav, logo, rank, who, r.optString("gamesPlayed"), r.optString("goals"),
+                        r.optString("assists"), r.optString("points"), r.optString("penaltyMinutes")));
+            } else if (page == 2) {
+                double sv = r.optDouble("savePercentage", 0);
+                table.addView(row(a, false, fav, logo, rank, who, r.optString("gamesPlayed"), r.optString("goalsAgainst"),
+                        String.format(Locale.GERMANY, "%.2f", r.optDouble("goalsAgainstAverage", 0)),
+                        sv > 0 ? String.format(Locale.GERMANY, "%.1f", sv) : "–"));
+            } else {
+                int d = r.optInt("misconducts") + r.optInt("gameMisconducts") + r.optInt("matchPenalties");
+                table.addView(row(a, false, fav, logo, rank, who, r.optString("gamesPlayed"), r.optString("penaltyMinutes"),
+                        r.optString("minorPenalties"), r.optString("majorPenalties"), d == 0 ? "" : String.valueOf(d)));
+            }
+        }
     }
 
     private static TableRow row(Activity a, boolean head, boolean fav, String logo, String... cells) {

@@ -28,6 +28,7 @@ final class LineupSheet {
     private static final int THEME = android.R.style.Theme_Material_Light_Dialog_Alert;
     private static final java.util.concurrent.ExecutorService POOL = java.util.concurrent.Executors.newFixedThreadPool(2);
     private static final Handler UI = new Handler(Looper.getMainLooper());
+    private static final int C_STAR = Color.rgb(214, 150, 0);     // Gold fuer den Topscorer-Stern
 
     private LineupSheet() {
     }
@@ -39,7 +40,7 @@ final class LineupSheet {
         ScrollView sv = new ScrollView(a);
         sv.addView(box);
 
-        TextView lg = text(a, g.league.trim() + " · " + g.division.trim(), 12, C_MUTED, false);
+        TextView lg = text(a, GameSheet.leagueShort(g), 12, C_MUTED, false);
         lg.setGravity(Gravity.CENTER);
         box.addView(lg, new LinearLayout.LayoutParams(-1, -2));
         final TextView title = text(a, g.homeShort + "   " + (g.type == 1 ? "–" : g.score()) + "   " + g.awayShort, 20, C_TEXT, true);
@@ -70,6 +71,15 @@ final class LineupSheet {
                     data = Api.reportData(g.id);
                 } catch (Exception ignored) {
                 }
+                // v2.9: Topscorer je Team aus der Liga-Statistik (nur auf Abruf, 30 Min. im Speicher)
+                java.util.Map<Long, Integer> ranks = new java.util.HashMap<>();
+                if (data != null && !g.divisionId.isEmpty()) {
+                    try {
+                        ranks = topScorerRanks(Api.leaders(g.divisionId, "FieldPlayers"));
+                    } catch (Exception ignored) {
+                    }
+                }
+                final java.util.Map<Long, Integer> fRanks = ranks;
                 final org.json.JSONObject fData = data;
                 UI.post(new Runnable() {
                     @Override
@@ -83,11 +93,13 @@ final class LineupSheet {
                             title.setText(gd.optString("homeTeamShortname") + "   " + gd.optInt("homeTeamScore") + " : "
                                     + gd.optInt("awayTeamScore") + "   " + gd.optString("awayTeamShortname"));
                         content.removeAllViews();
-                        int n = lineupSide(a, content, fData, "home", g.homeName);
-                        n += lineupSide(a, content, fData, "away", g.awayName);
+                        int n = lineupSide(a, content, fData, "home", g.homeName, fRanks);
+                        n += lineupSide(a, content, fData, "away", g.awayName, fRanks);
                         TextView foot = text(a, n == 0
                                 ? "Aufstellung noch nicht verfügbar – wird eingetragen, sobald der Anschreiber sie erfasst."
-                                : "R = Reihe · T = Tore · A = Assists · SM = Strafminuten · GT = Gegentore", 11, C_MUTED, false);
+                                : "R = Reihe · T = Tore · A = Assists · SM = Strafminuten · GT = Gegentore"
+                                + (fRanks.isEmpty() ? "" : "\n☆ 1–3 = Topscorer des Teams in dieser Liga (Punkte der Saison, "
+                                + "bei Gleichstand mehr Tore) · T/A/SM = dieses Spiel"), 11, C_MUTED, false);
                         foot.setPadding(0, dp(a, 12), 0, 0);
                         content.addView(foot);
                     }
@@ -97,7 +109,32 @@ final class LineupSheet {
     }
 
     /** Eine Mannschaft: zuerst Torhueter, dann Spieler nach Reihe und Position. Liefert die Anzahl. */
-    private static int lineupSide(Activity a, LinearLayout box, org.json.JSONObject data, String side, String teamName) {
+    /** Rang 1–3 je Team (teamId) nach Punkten, dann Toren; Spieler ohne Punkte zählen nicht. Schlüssel = Spieler-ID. */
+    static java.util.Map<Long, Integer> topScorerRanks(List<org.json.JSONObject> leaders) {
+        java.util.Map<Long, List<org.json.JSONObject>> byTeam = new java.util.HashMap<>();
+        for (org.json.JSONObject r : leaders) {
+            if (r.optInt("points", 0) <= 0) continue;
+            long t = r.optLong("teamId", 0);
+            List<org.json.JSONObject> l = byTeam.get(t);
+            if (l == null) byTeam.put(t, l = new ArrayList<>());
+            l.add(r);
+        }
+        java.util.Map<Long, Integer> out = new java.util.HashMap<>();
+        for (List<org.json.JSONObject> l : byTeam.values()) {
+            java.util.Collections.sort(l, new java.util.Comparator<org.json.JSONObject>() {
+                @Override
+                public int compare(org.json.JSONObject x, org.json.JSONObject y) {
+                    int d = y.optInt("points") - x.optInt("points");
+                    return d != 0 ? d : y.optInt("goals") - x.optInt("goals");
+                }
+            });
+            for (int i = 0; i < l.size() && i < 3; i++) out.put(l.get(i).optLong("id", -1), i + 1);
+        }
+        return out;
+    }
+
+    private static int lineupSide(Activity a, LinearLayout box, org.json.JSONObject data, String side, String teamName,
+                                  java.util.Map<Long, Integer> ranks) {
         List<String[]> rows = new ArrayList<>();
         org.json.JSONArray gk = data.optJSONArray(side + "GoalKeepers");
         if (gk != null) for (int i = 0; i < gk.length(); i++) {
@@ -107,7 +144,7 @@ final class LineupSheet {
             rows.add(new String[]{"0" + (start ? "0" : "1") + String.format(Locale.GERMANY, "%03d", parseNr(p)),
                     p.optString("playerJerseyNr"),
                     lineupName(p) + (start ? " (Start)" : "") + " · " + p.optInt("goalsAgainst") + " GT",
-                    "G", "", num(p.optInt("goals")), num(p.optInt("assists")), num(p.optInt("penaltyMinutes"))});
+                    "G", "", num(p.optInt("goals")), num(p.optInt("assists")), num(p.optInt("penaltyMinutes")), ""});
         }
         org.json.JSONArray fp = data.optJSONArray(side + "FieldPlayers");
         if (fp != null) for (int i = 0; i < fp.length(); i++) {
@@ -118,7 +155,8 @@ final class LineupSheet {
             rows.add(new String[]{"1" + String.format(Locale.GERMANY, "%02d", line > 0 ? line : 99) + posOrder(pos)
                     + String.format(Locale.GERMANY, "%03d", parseNr(p)),
                     p.optString("playerJerseyNr"), lineupName(p), pos, line > 0 ? String.valueOf(line) : "",
-                    num(p.optInt("goals")), num(p.optInt("assists")), num(p.optInt("penaltyMinutes"))});
+                    num(p.optInt("goals")), num(p.optInt("assists")), num(p.optInt("penaltyMinutes")),
+                    ranks.containsKey(p.optLong("id", -2)) ? String.valueOf(ranks.get(p.optLong("id", -2))) : ""});
         }
         if (rows.isEmpty()) return 0;
         java.util.Collections.sort(rows, new java.util.Comparator<String[]>() {
@@ -128,7 +166,7 @@ final class LineupSheet {
             }
         });
         section(a, box, teamName);
-        box.addView(lineupRow(a, new String[]{"", "#", "Name", "Pos", "R", "T", "A", "SM"}, true));
+        box.addView(lineupRow(a, new String[]{"", "#", "Name", "Pos", "R", "T", "A", "SM", ""}, true));
         for (String[] r : rows) box.addView(lineupRow(a, r, false));
         return rows.size();
     }
@@ -143,6 +181,11 @@ final class LineupSheet {
             if (i != 1) t.setGravity(Gravity.CENTER_HORIZONTAL);
             if (i == 1) {
                 t.setMaxLines(2);
+                if (!head && r.length > 8 && !r[8].isEmpty()) { // v2.9: Topscorer-Stern vor dem Namen
+                    t.setCompoundDrawables(new StarDrawable(r[8], C_STAR, dp(a, 20)), null, null, null);
+                    t.setCompoundDrawablePadding(dp(a, 4));
+                    t.setGravity(Gravity.CENTER_VERTICAL);
+                }
                 row.addView(t, new LinearLayout.LayoutParams(0, -2, 1f));
             } else {
                 row.addView(t, new LinearLayout.LayoutParams(dp(a, w[i]), -2));
