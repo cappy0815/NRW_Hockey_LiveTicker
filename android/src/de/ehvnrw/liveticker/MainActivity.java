@@ -618,6 +618,9 @@ public class MainActivity extends Activity {
         credits.setGravity(Gravity.CENTER);
         credits.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.ITALIC));
         box.addView(credits, new LinearLayout.LayoutParams(-1, -2));
+        TextView more = text("Mehr Projekte und Downloads: cappy0815.github.io", 12, C_MUTED, false);
+        more.setGravity(Gravity.CENTER);
+        box.addView(more, new LinearLayout.LayoutParams(-1, -2));
 
         FrameLayout frame = withScrollHint(sv);
 
