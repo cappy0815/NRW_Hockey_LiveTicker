@@ -351,8 +351,16 @@ public class MainActivity extends Activity {
         chk.setText("Jetzt prüfen");
         Ui.pill(chk, Ui.DARK);
         final android.widget.Button dl = new android.widget.Button(this);
-        dl.setText("\u2B06 Herunterladen");
+        dl.setText("\u2B06 Download");
         Ui.pill(dl, Ui.GREEN);
+        // v2.82: beide Knöpfe gleich breit, einzeilig (vorher „Herunterlade-n“ umgebrochen)
+        for (android.widget.Button b : new android.widget.Button[]{chk, dl}) {
+            b.setSingleLine(true);
+            b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+            b.setPadding(dp(8), dp(10), dp(8), dp(10));
+            b.setMinWidth(0);
+            b.setMinimumWidth(0);
+        }
         final Runnable show = new Runnable() {
             @Override
             public void run() {
@@ -389,8 +397,8 @@ public class MainActivity extends Activity {
                 Update.openDownload(MainActivity.this);
             }
         });
-        row.addView(chk);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
+        row.addView(chk, new LinearLayout.LayoutParams(0, -2, 1f));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1f);
         lp.leftMargin = dp(8);
         row.addView(dl, lp);
         LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, -2);
@@ -564,7 +572,7 @@ public class MainActivity extends Activity {
                 + "aus den Einteilungen auf esrw.de, sofern dort eingetragen (oben in Stufe 3 und im Detailfenster)");
 
         section(box, "Beenden");
-        item(box, "\uD83D\uDED1", "„App beenden“ unten in den Optionen (\u2699) schließt alle Displays und die App – "
+        item(box, "\uD83D\uDED1", "„App beenden“ ganz unten in den Optionen (\u2699) schließt alle Displays und die App – "
                 + "oder „Beenden“ in der Benachrichtigung");
         item(box, "\u23F0", "Gibt es Vormerkungen, fragt die App: „Alles beenden“ oder „Nur App schließen“ (Vormerkungen bleiben)");
 
@@ -676,6 +684,8 @@ public class MainActivity extends Activity {
 
     // ------------------------------------------------------------------ Changelog
     private static final String[][] CHANGELOG = {
+            {"2.82", "Optionen: Knöpfe „Jetzt prüfen“/„Download“ und Speichern/Abbrechen sauber nebeneinander, "
+                    + "„App beenden“ als eigener Knopf ganz unten"},
             {"2.81", "RED+-Logo auch in Live-, Spielplan- und Meine-Liste (antippen öffnet den Stream)\n"
                     + "Liga ohne „Hauptrunde 26/27“, Halle im Spielplan in eigener Zeile"},
             {"2.8", "RED+-Livestream: Knopf „Watch on RED+“ in den Spiel-Details, „▶ RED+“ in den Listen\n"
@@ -874,14 +884,20 @@ public class MainActivity extends Activity {
         final Switch[] swUpd = new Switch[1];
         updateSection(box, swUpd);
 
-        Ui.dialog(new android.app.AlertDialog.Builder(this)
+        // v2.82: „App beenden“ als Knopf im Inhalt statt dritter Dialog-Knopf (die drei stapelten sich und wurden abgeschnitten)
+        section(box, "App");
+        android.widget.Button btQuit = new android.widget.Button(this);
+        btQuit.setText("App beenden");
+        btQuit.setSingleLine(true);
+        Ui.outline(btQuit, Ui.RED);
+        LinearLayout.LayoutParams qLp = new LinearLayout.LayoutParams(-1, -2);
+        qLp.topMargin = dp(4);
+        qLp.bottomMargin = dp(8);
+        box.addView(btQuit, qLp);
+        box.addView(text("Schließt alle Floatings und beendet die App.", 12, C_MUTED, false));
+
+        final android.app.AlertDialog optDlg = new android.app.AlertDialog.Builder(this)
                 .setView(withScrollHint(sv))
-                .setNeutralButton("App beenden", new android.content.DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(android.content.DialogInterface d, int which) {
-                        quitApp(); // v2.7: aus der Kopfleiste hierher verschoben
-                    }
-                })
                 .setNegativeButton("Abbrechen", null)
                 .setPositiveButton("Speichern", new android.content.DialogInterface.OnClickListener() {
                     @Override
@@ -903,7 +919,15 @@ public class MainActivity extends Activity {
                         Toast.makeText(MainActivity.this, "Optionen gespeichert", Toast.LENGTH_SHORT).show();
                     }
                 })
-                .show());
+                .show();
+        Ui.dialog(optDlg);
+        btQuit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                optDlg.dismiss();
+                quitApp();
+            }
+        });
     }
 
     private Spinner spinner(String[] names, int sel) {

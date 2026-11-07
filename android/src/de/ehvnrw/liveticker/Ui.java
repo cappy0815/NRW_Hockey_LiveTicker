@@ -68,6 +68,7 @@ final class Ui {
         if (p != null) pill(p, GREEN);
         if (n != null) outline(n, DARK);
         if (u != null) outline(u, DARK);
+        for (Button b : new Button[]{p, n, u}) if (b != null) b.setSingleLine(true); // v2.82: nicht umbrechen
         // Knopfleiste mittig: Abstandhalter ausblenden, Inhalt zentrieren
         Button any = p != null ? p : (n != null ? n : u);
         if (any != null && any.getParent() instanceof android.widget.LinearLayout) {
