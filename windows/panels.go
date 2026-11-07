@@ -479,7 +479,15 @@ func paintSched(c *canvas, p *panel, w, h int) {
 		}
 		c.line(512, y, 70, sRowH, score, ui(9, true), cDark, DT_CENTER)
 		c.line(588, y, 150, sRowH, leagueShort(g.league, g.divName), ui(8, false), cGreyTxt, DT_LEFT)
-		c.line(742, y, w-756, sRowH, hallShort(g.hall), ui(8, false), cGreyTxt, DT_LEFT)
+		c.line(742, y, w-800, sRowH, hallShort(g.hall), ui(8, false), cGreyTxt, DT_LEFT)
+		if g.redURL != "" && optRedPlus {
+			col := uint32(cRed)
+			if p.hover == "redS"+strconv.Itoa(i) {
+				col = lighter(cRed)
+			}
+			c.round(w-48, y+sRowH/2-10, 36, 20, 10, col)
+			c.line(w-48, y+sRowH/2-10, 36, 20, "RED+", ui(7, true), cWhite, DT_CENTER)
+		}
 	}
 }
 
@@ -497,6 +505,9 @@ func schedHit(p *panel, x, y int) string {
 	if y >= p.viewTop && y < p.viewTop+p.viewH {
 		i := (y - p.viewTop + p.scroll) / sRowH
 		if i < len(schedList) && schedList[i].kind == 0 {
+			if g := schedList[i].g; g != nil && g.redURL != "" && optRedPlus && x >= p.w-52 && x < p.w-8 {
+				return "redS" + strconv.Itoa(i)
+			}
 			return "row" + strconv.Itoa(i)
 		}
 		if i < len(schedList) && schedList[i].kind == 3 {
@@ -512,6 +523,12 @@ func schedClick(p *panel, hv string, dbl bool) {
 		schedTab, _ = strconv.Atoi(hv[3:])
 		p.scroll = 0
 		schedBuild()
+	case strings.HasPrefix(hv, "redS"):
+		if i, err := strconv.Atoi(hv[4:]); err == nil && i < len(schedList) && schedList[i].g != nil {
+			if u := schedList[i].g.redURL; strings.HasPrefix(u, "https://redirect.red.sport/") {
+				shellOpen(u)
+			}
+		}
 	case hv == "reload":
 		schedStatus = "Lade Spielplan aller Ligen …"
 		startWork(false, true)

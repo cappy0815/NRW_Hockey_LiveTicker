@@ -5,8 +5,8 @@ Live-Ticker für laufende Spiele im Eishockeyverband NRW – als Windows-Program
 | | Windows | Android |
 |---|---|---|
 | Name | EHV-NRW Live-Ticker | EHV Live |
-| Version | 3.4 | 2.8 |
-| Download | [EXE v3.4](https://cappy0815.github.io/downloads/EHV_NRW_LiveTicker_v3.4.exe) | [APK v2.8](https://cappy0815.github.io/downloads/EHV-Live-v2.8.apk) |
+| Version | 3.5 | 2.8 |
+| Download | [EXE v3.5](https://cappy0815.github.io/downloads/EHV_NRW_LiveTicker_v3.5.exe) | [APK v2.8](https://cappy0815.github.io/downloads/EHV-Live-v2.8.apk) |
 
 ![Ticker-Fenster der Windows-Version](screenshot-windows.png)
 
@@ -39,7 +39,7 @@ Prüfsummen (SHA-256) stehen auf [cappy0815.github.io](https://cappy0815.github.
 Go ab 1.24 und Python 3. Im Ordner `windows/`:
 
 ```
-python3 mkres.py 3.4.0.0 ehv_ticker.ico
+python3 mkres.py 3.5.0.0 ehv_ticker.ico
 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags "-H windowsgui" -o EHV_NRW_LiveTicker.exe .
 ```
 

@@ -32,7 +32,7 @@ def version_info(ver, strings):
 
 MANIFEST = b'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
-  <assemblyIdentity type="win32" name="EHV.LiveTicker" version="3.4.0.0" processorArchitecture="amd64"/>
+  <assemblyIdentity type="win32" name="EHV.LiveTicker" version="3.5.0.0" processorArchitecture="amd64"/>
   <description>EHV-NRW Live-Ticker</description>
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
     <security><requestedPrivileges><requestedExecutionLevel level="asInvoker" uiAccess="false"/></requestedPrivileges></security>

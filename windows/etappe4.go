@@ -388,6 +388,7 @@ func helpDoc() []docLine {
 }
 
 var changelog = [][2]string{
+	{"3.5", "RED+-Knopf auch im Spielplan (je Spiel mit Link)|RED+-Knopf in der Liste auch bei laufenden Spielen"},
 	{"3.4", "Optionen: Ergebnis der Update-Prüfung steht im Fenster|Update-Download: Programm wird danach beendet (EXE-Pfad wird angezeigt)|RED+-Knopf in der Liste (Logo-Knopf, abschaltbar) und im Steckbrief in voller Höhe|Liste: Liga ohne „Hauptrunde“ und Saison, Spielzeit kürzer und lesbar"},
 	{"3.3", "Steckbrief: RED+-Button mit Logo, wenn ein Stream-Link vorliegt|Optionen › LINKS: RED+ Button ein-/ausschalten"},
 	{"3.2", "Spielplan: neuer Reiter „Tabellen“ – alle Ligen nach Altersklasse, Ligen der eigenen Teams oben, Klick öffnet die Tabelle|Hilfe: Link zur Projektseite (cappy0815.github.io)"},
