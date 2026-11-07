@@ -301,7 +301,8 @@ class SchedulePane extends LinearLayout {
 
     /** Zeile: links Uhrzeit bzw. Ergebnis, rechts Teams + Liga/Halle */
     private class Row extends LinearLayout {
-        final TextView left, homeTxt, awayTxt, sub;
+        final TextView left, homeTxt, awayTxt, sub, place;
+        final android.widget.ImageView red;
         final android.widget.ImageView homeImg, awayImg;
 
         Row() {
@@ -329,8 +330,20 @@ class SchedulePane extends LinearLayout {
             sub.setTextColor(C_MUTED);
             sub.setMaxLines(1);
             sub.setEllipsize(android.text.TextUtils.TruncateAt.END);
-            sub.setPadding(0, dp(2), 0, 0);
-            col.addView(sub);
+            // v2.81: Liga + RED+-Logo in einer Zeile, Halle darunter (verschwand sonst rechts)
+            LinearLayout subLine = new LinearLayout(getContext());
+            subLine.setGravity(Gravity.CENTER_VERTICAL);
+            subLine.setPadding(0, dp(2), 0, 0);
+            subLine.addView(sub, new LayoutParams(0, -2, 1f));
+            red = GameSheet.streamBadge(a);
+            subLine.addView(red, new LayoutParams(dp(74), dp(24)));
+            col.addView(subLine);
+            place = new TextView(getContext());
+            place.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+            place.setTextColor(C_MUTED);
+            place.setMaxLines(1);
+            place.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            col.addView(place);
             addView(col, new LayoutParams(0, -2, 1f));
         }
 
@@ -365,8 +378,10 @@ class SchedulePane extends LinearLayout {
             awayTxt.setText(g.awayName);
             GameSheet.loadImage(homeImg, g.homeLogo);
             GameSheet.loadImage(awayImg, g.awayLogo);
-            sub.setText(GameSheet.leagueShort(g) + (g.arenaShort.isEmpty() ? "" : "  ·  📍 " + g.arenaShort)
-                    + GameSheet.streamTag(a, g));
+            sub.setText(GameSheet.leagueShort(g) + GameSheet.streamTag(a, g));
+            place.setText(g.arenaShort.isEmpty() ? "" : "📍 " + g.arenaShort);
+            place.setVisibility(g.arenaShort.isEmpty() ? GONE : VISIBLE);
+            GameSheet.bindStreamBadge(a, red, g);
         }
     }
 }

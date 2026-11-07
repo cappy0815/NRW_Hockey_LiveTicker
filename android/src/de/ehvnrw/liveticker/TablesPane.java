@@ -154,7 +154,7 @@ class TablesPane extends LinearLayout {
     private static String title(Game g, String gr) {
         String l = g.league.trim().replaceFirst("^NRW\\s*-\\s*", "").trim();
         if (l.startsWith(gr)) l = l.substring(gr.length()).trim();
-        String d = g.division.trim().replaceAll("\\s*\\d{2,4}/\\d{2,4}", "").trim();
+        String d = GameSheet.divisionClean(g.division);
         if (l.isEmpty()) return d.isEmpty() ? gr : d;
         return d.isEmpty() ? l : l + " · " + d;
     }

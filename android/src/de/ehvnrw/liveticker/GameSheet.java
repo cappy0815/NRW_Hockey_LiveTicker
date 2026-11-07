@@ -84,7 +84,6 @@ final class GameSheet {
      */
     static View streamView(final Activity a, final Game g, boolean dark) {
         if (!Prefs.streamOn(a) || !g.hasStream()) return null;
-        final String url = g.streamUrl.isEmpty() ? g.streamDay : g.streamUrl;
         LinearLayout box = new LinearLayout(a);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setGravity(Gravity.CENTER_HORIZONTAL);
@@ -107,11 +106,7 @@ final class GameSheet {
         btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                try {
-                    a.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
-                } catch (Exception e) {
-                    Toast.makeText(a, "Kein Browser gefunden", Toast.LENGTH_SHORT).show();
-                }
+                openStream(a, g);
             }
         });
         if (g.streamUrl.isEmpty()) {
@@ -125,9 +120,9 @@ final class GameSheet {
         return box;
     }
 
-    /** kurzer Hinweis für Listenzeilen: " · ▶ RED+" (leer, wenn kein Stream oder ausgeschaltet) */
+    /** kurzer Hinweis für Listenzeilen ohne RED+-Logo: " · ▶ Stream" (leer bei RED+, kein Stream oder ausgeschaltet) */
     static String streamTag(android.content.Context c, Game g) {
-        if (!Prefs.streamOn(c) || !g.hasStream()) return "";
+        if (!Prefs.streamOn(c) || !g.hasStream() || g.isRedPlus()) return "";
         return "  ·  \u25B6 " + (g.streamName.isEmpty() ? "Stream" : g.streamName);
     }
 
@@ -146,9 +141,56 @@ final class GameSheet {
 
     /** "NRW - U15" + "Regionalliga A Hauptrunde 2026/27" -> "U15 · Regionalliga A Hauptrunde" */
     static String leagueShort(Game g) {
-        String l = g.league.trim().replaceFirst("^NRW\\s*-\\s*", "");
-        String d = g.division.trim().replaceAll("\\s*\\d{4}/\\d{2,4}$", "");
+        String l = g.league.trim().replaceFirst("^NRW\\s*-\\s*", "").trim();
+        String d = divisionClean(g.division);
         return d.isEmpty() ? l : l + " · " + d;
+    }
+
+    /**
+     * v2.81: Runde/Saison weglassen: "Hauptrunde 2026/27" -> "", "Regionalliga West Hauptrunde 26/27" -> "Regionalliga West",
+     * "DFEL2 HR 2026/27" -> "DFEL2", "Hauptrunde 2026/27 Gruppe A" -> "Gruppe A". Andere Runden (z. B. Platzierungsrunde) bleiben.
+     */
+    static String divisionClean(String div) {
+        if (div == null) return "";
+        return div.replaceAll("\\b\\d{2,4}/\\d{2,4}\\b", " ")
+                .replaceAll("(?i)\\bHauptrunde\\b|\\bHR\\b", " ")
+                .replaceAll("\\s+", " ").trim();
+    }
+
+    /** v2.81: kleines RED+-Logo in Listenzeilen, antippen öffnet den Stream direkt */
+    static void bindStreamBadge(final Activity a, android.widget.ImageView iv, final Game g) {
+        if (!Prefs.streamOn(a) || !g.hasStream() || !g.isRedPlus()) {
+            iv.setVisibility(View.GONE);
+            iv.setOnClickListener(null);
+            return;
+        }
+        iv.setVisibility(View.VISIBLE);
+        iv.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                openStream(a, g);
+            }
+        });
+    }
+
+    static android.widget.ImageView streamBadge(Activity a) {
+        android.widget.ImageView iv = new android.widget.ImageView(a);
+        iv.setImageResource(R.drawable.red_plus);
+        iv.setScaleType(android.widget.ImageView.ScaleType.FIT_CENTER);
+        iv.setAdjustViewBounds(true);
+        iv.setPadding(dp(a, 6), dp(a, 4), 0, dp(a, 4)); // groessere Tippflaeche
+        iv.setContentDescription("Auf RED+ ansehen");
+        iv.setVisibility(View.GONE);
+        return iv;
+    }
+
+    static void openStream(Activity a, Game g) {
+        String url = g.streamUrl.isEmpty() ? g.streamDay : g.streamUrl;
+        try {
+            a.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+        } catch (Exception e) {
+            Toast.makeText(a, "Kein Browser gefunden", Toast.LENGTH_SHORT).show();
+        }
     }
 
     /** "Sa, 24.10." */

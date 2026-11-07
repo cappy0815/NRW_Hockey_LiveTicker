@@ -537,7 +537,7 @@ public class MainActivity extends Activity {
         item(box, "\uD83D\uDCCA", "„Tabellen“: alle Ligen nach Altersklasse, Ligen der eigenen Teams oben – antippen zeigt die Tabelle");
         item(box, "\u2194", "Nach links/rechts wischen wechselt den Reiter, „Zurück“ führt zur Live-Liste, \u21BB lädt den Spielplan neu");
         section(box, "Livestream (RED+)");
-        item(box, "\u25B6", "Hat ein Spiel einen RED+-Stream, steht „▶ RED+“ in der Liste. In den Spiel-Details "
+        item(box, "\u25B6", "Hat ein Spiel einen RED+-Stream, steht das RED+-Logo in der Live-, Spielplan- und Meine-Liste – antippen öffnet den Stream. In den Spiel-Details "
                 + "(Spielplan antippen bzw. Floating lange drücken) öffnet der Knopf „Watch on RED+“ das Spiel im Browser. "
                 + "Ohne direkten Link öffnet sich das RED+-Tagesprogramm. Abschaltbar in den Optionen unter „Livestream“.");
         item(box, "\uD83D\uDC46", "Spiel antippen: Steckbrief mit Halle, Drittelergebnissen und Torschützen");
@@ -676,6 +676,8 @@ public class MainActivity extends Activity {
 
     // ------------------------------------------------------------------ Changelog
     private static final String[][] CHANGELOG = {
+            {"2.81", "RED+-Logo auch in Live-, Spielplan- und Meine-Liste (antippen öffnet den Stream)\n"
+                    + "Liga ohne „Hauptrunde 26/27“, Halle im Spielplan in eigener Zeile"},
             {"2.8", "RED+-Livestream: Knopf „Watch on RED+“ in den Spiel-Details, „▶ RED+“ in den Listen\n"
                     + "Abschaltbar in den Optionen unter „Livestream“"},
             {"2.71", "Reiterleiste mit modernen Linien-Symbolen, aktiver Reiter grün hinterlegt"},
@@ -865,7 +867,7 @@ public class MainActivity extends Activity {
         section(box, "Livestream");
         final Switch swStream = toggle("RED+-Link anzeigen, wenn vorhanden", Prefs.streamOn(this));
         box.addView(swStream);
-        box.addView(text("Knopf „Watch on RED+“ in den Spiel-Details und „▶ RED+“ in den Listen. "
+        box.addView(text("Knopf „Watch on RED+“ in den Spiel-Details und RED+-Logo in den Listen. "
                 + "Der Link kommt aus dem EHV-Spielplan; Ansehen über die RED+-Seite (ggf. kostenpflichtig).",
                 12, C_MUTED, false));
 
@@ -1182,6 +1184,7 @@ public class MainActivity extends Activity {
     private class Row extends LinearLayout {
         final TeamBadge home, away;
         final TextView league, teams, score, info;
+        final ImageView red;
         String boundId = "";
 
         Row() {
@@ -1193,7 +1196,14 @@ public class MainActivity extends Activity {
             league.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
             league.setTextColor(Color.GRAY);
             league.setMaxLines(1);
-            addView(league);
+            league.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            // v2.81: Liga links, RED+-Logo rechts (antippen = Stream)
+            LinearLayout top = new LinearLayout(getContext());
+            top.setGravity(Gravity.CENTER_VERTICAL);
+            top.addView(league, new LayoutParams(0, -2, 1f));
+            red = GameSheet.streamBadge(MainActivity.this);
+            top.addView(red, new LayoutParams(dp(74), dp(24)));
+            addView(top);
 
             LinearLayout line = new LinearLayout(getContext());
             line.setOrientation(HORIZONTAL);
@@ -1226,7 +1236,8 @@ public class MainActivity extends Activity {
         void bind(final Game g) {
             boundId = g.id;
             setBackgroundColor(Prefs.isFav(MainActivity.this, g) ? Color.rgb(255, 246, 214) : Color.TRANSPARENT);
-            league.setText(g.league.trim() + " · " + g.division.trim());
+            league.setText(GameSheet.leagueShort(g));
+            GameSheet.bindStreamBadge(MainActivity.this, red, g);
             score.setText(g.type == 1 ? "–" : g.score());
             boolean pend = OverlayService.isPending(g.id);
             setAlpha(g.type == 1 && !pend ? 0.55f : 1f);
