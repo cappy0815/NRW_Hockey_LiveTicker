@@ -196,7 +196,18 @@ public final class Api {
      * Alle Spiele aller Ligen der Saison (jeder Status), nach Anstoss sortiert.
      * Grosse Abfrage (~3 MB) -> 30 Minuten zwischengespeichert, ausser force = true.
      */
+    private static final Object SEASON_LOCK = new Object();
+
     static List<Game> season(boolean force) {
+        // v2.7: mehrere Reiter fragen evtl. gleichzeitig -> nur ein Abruf, die anderen bekommen den Speicher
+        long asked = System.currentTimeMillis();
+        synchronized (SEASON_LOCK) {
+            if (force && seasonAt >= asked && !seasonCache.isEmpty()) return seasonCache;
+            return seasonLoad(force);
+        }
+    }
+
+    private static List<Game> seasonLoad(boolean force) {
         loadConfig();
         if (!force && !seasonCache.isEmpty() && System.currentTimeMillis() - seasonAt < SEASON_MS) return seasonCache;
         ExecutorService pool = Executors.newFixedThreadPool(6);

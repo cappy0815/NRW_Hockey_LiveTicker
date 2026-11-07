@@ -1,17 +1,12 @@
 package de.ehvnrw.liveticker;
 
 import android.app.Activity;
-import android.content.Context;
-import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.TypedValue;
 import android.view.Gravity;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -27,104 +22,111 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Spielplan: "Nächste" (7 Tage), "Ergebnisse" (letzte 7 Tage), "Meine Spiele" (hervorgehobene Teams).
- * Daten aus dem Saison-Spielplan (Api.season), Antippen = Steckbrief mit Route/Kalender/Tabelle.
+ * v2.7: Reiter "Spielplan" (Nächste / Ergebnisse) und "Meine" (hervorgehobene Teams) im Hauptfenster.
+ * Vorher eigenes Fenster (ScheduleActivity). Daten aus dem Saison-Spielplan (Api.season, 30 Min. Speicher),
+ * Antippen = Steckbrief mit Route/Kalender/Tabelle.
  */
-public class ScheduleActivity extends Activity {
+class SchedulePane extends LinearLayout {
 
-    static final String EX_TAB = "tab";
     static final int TAB_NEXT = 0, TAB_RESULTS = 1, TAB_MINE = 2;
     private static final long DAY = 24L * 60 * 60 * 1000;
     private static final int C_TEXT = Color.rgb(34, 38, 43);
     private static final int C_MUTED = Color.rgb(110, 116, 124);
 
+    private final Activity a;
+    private final boolean mine;
     private final Handler ui = new Handler(Looper.getMainLooper());
     private final List<Object> items = new ArrayList<>(); // String = Ueberschrift, Game = Spiel
     private List<Game> season = new ArrayList<>();
-    private int tab = TAB_NEXT;
-    private final Button[] tabs = new Button[3];
-    private TextView status;
-    private Adapter adapter;
+    private int tab;
+    private final Button[] tabs = new Button[2];
+    private final TextView status;
+    private final Adapter adapter;
+    private final Button reload;
+    private boolean loaded, loading;
 
-    static void open(Context c, int tab) {
-        c.startActivity(new Intent(c, ScheduleActivity.class).putExtra(EX_TAB, tab));
-    }
+    /** mine = true: Reiter "Meine", sonst "Spielplan" mit Umschalter Nächste/Ergebnisse */
+    SchedulePane(Activity act, boolean mine) {
+        super(act);
+        this.a = act;
+        this.mine = mine;
+        tab = mine ? TAB_MINE : TAB_NEXT;
+        setOrientation(VERTICAL);
+        setPadding(dp(10), dp(8), dp(10), 0);
 
-    @Override
-    protected void onCreate(Bundle b) {
-        super.onCreate(b);
-        tab = getIntent().getIntExtra(EX_TAB, TAB_NEXT);
-        setTitle("Spielplan");
-        if (getActionBar() != null) getActionBar().setDisplayHomeAsUpEnabled(true);
-
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(10), dp(10), dp(10), 0);
-
-        LinearLayout seg = new LinearLayout(this);
-        String[] names = {"Nächste", "Ergebnisse", "Meine Spiele"};
-        for (int i = 0; i < 3; i++) {
-            final int t = i;
-            tabs[i] = new Button(this);
-            tabs[i].setText(names[i]);
-            tabs[i].setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    tab = t;
-                    styleTabs();
-                    build();
-                }
-            });
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1f);
-            lp.leftMargin = dp(3);
-            lp.rightMargin = dp(3);
-            seg.addView(tabs[i], lp);
+        if (!mine) {
+            LinearLayout seg = new LinearLayout(a);
+            String[] names = {"Nächste", "Ergebnisse"};
+            for (int i = 0; i < 2; i++) {
+                final int t = i;
+                tabs[i] = new Button(a);
+                tabs[i].setText(names[i]);
+                tabs[i].setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        setTab(t);
+                    }
+                });
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1f);
+                lp.leftMargin = dp(3);
+                lp.rightMargin = dp(3);
+                seg.addView(tabs[i], lp);
+            }
+            addView(seg);
+            styleTabs();
         }
-        root.addView(seg);
-        styleTabs();
 
-        status = new TextView(this);
+        LinearLayout bar = new LinearLayout(a);
+        bar.setGravity(Gravity.CENTER_VERTICAL);
+        status = new TextView(a);
         status.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         status.setTextColor(C_MUTED);
         status.setPadding(dp(4), dp(8), dp(4), dp(6));
-        root.addView(status);
+        bar.addView(status, new LinearLayout.LayoutParams(0, -2, 1f));
+        reload = new Button(a);
+        reload.setText("\u21BB");
+        Ui.outline(reload, Ui.DARK);
+        reload.setMinWidth(0);
+        reload.setMinimumWidth(0);
+        reload.setPadding(dp(14), dp(4), dp(14), dp(4));
+        reload.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                load(true);
+            }
+        });
+        bar.addView(reload, new LinearLayout.LayoutParams(-2, -2));
+        addView(bar);
 
-        ListView list = new ListView(this);
+        ListView list = new ListView(a);
         adapter = new Adapter();
         list.setAdapter(adapter);
         list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> p, View v, int pos, long id) {
                 Object o = items.get(pos);
-                if (o instanceof Game) GameSheet.show(ScheduleActivity.this, (Game) o);
+                if (o instanceof Game) GameSheet.show(a, (Game) o);
             }
         });
-        root.addView(list, new LinearLayout.LayoutParams(-1, 0, 1f));
-        setContentView(root);
-        load(false);
+        addView(list, new LinearLayout.LayoutParams(-1, 0, 1f));
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        menu.add(0, 1, 0, "Aktualisieren").setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-        return true;
+    /** Reiter wird sichtbar: beim ersten Mal laden (Saisonplan meist schon im Speicher), sonst neu aufbauen */
+    void shown() {
+        if (!loaded) load(false);
+        else build();
     }
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == android.R.id.home) {
-            finish();
-            return true;
-        }
-        if (item.getItemId() == 1) {
-            load(true);
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
+    /** Umschalten Nächste/Ergebnisse (nur Spielplan) */
+    void setTab(int t) {
+        if (mine) return;
+        tab = t;
+        styleTabs();
+        if (loaded) build();
     }
 
     private void styleTabs() {
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 2; i++) {
             if (i == tab) Ui.pill(tabs[i], Ui.GREEN);
             else Ui.outline(tabs[i], Ui.DARK);
             tabs[i].setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
@@ -133,7 +135,10 @@ public class ScheduleActivity extends Activity {
         }
     }
 
-    private void load(final boolean force) {
+    void load(final boolean force) {
+        if (loading) return;
+        loading = true;
+        reload.setEnabled(false);
         status.setText("Lade Spielplan aller Ligen …");
         new Thread(new Runnable() {
             @Override
@@ -142,7 +147,10 @@ public class ScheduleActivity extends Activity {
                 ui.post(new Runnable() {
                     @Override
                     public void run() {
+                        loading = false;
+                        reload.setEnabled(true);
                         season = s;
+                        loaded = !s.isEmpty();
                         build();
                     }
                 });
@@ -163,7 +171,7 @@ public class ScheduleActivity extends Activity {
     private void build() {
         items.clear();
         if (season.isEmpty()) {
-            status.setText("Keine Daten – Verbindung prüfen und „Aktualisieren“ tippen.");
+            status.setText("Keine Daten – Verbindung prüfen und ↻ tippen.");
             adapter.notifyDataSetChanged();
             return;
         }
@@ -189,18 +197,18 @@ public class ScheduleActivity extends Activity {
             msg = sel.size() + " Ergebnisse der letzten 7 Tage";
             addGrouped(sel, today);
         } else {
-            if (!Prefs.favOn(this) || Prefs.favTerms(this).trim().isEmpty()) {
+            if (!Prefs.favOn(a) || Prefs.favTerms(a).trim().isEmpty()) {
                 msg = "Keine Teams hervorgehoben – in den Optionen unter „Hervorhebung“ eintragen (z. B. Neuss).";
             } else {
                 List<Game> next = new ArrayList<>(), last = new ArrayList<>();
                 for (Game g : season) {
-                    if (!Prefs.isFav(this, g)) continue;
+                    if (!Prefs.isFav(a, g)) continue;
                     if (g.status == 4) last.add(g);
                     else if (g.startMs >= today) next.add(g);
                 }
                 Collections.reverse(last);
                 if (last.size() > 10) last = new ArrayList<>(last.subList(0, 10));
-                msg = "„" + Prefs.favTerms(this).trim() + "“: " + next.size() + " kommende Spiele · letzte " + last.size() + " Ergebnisse";
+                msg = "„" + Prefs.favTerms(a).trim() + "“: " + next.size() + " kommende Spiele · letzte " + last.size() + " Ergebnisse";
                 if (!next.isEmpty()) {
                     items.add("#Kommende Spiele");
                     addGrouped(next, today);
@@ -233,7 +241,7 @@ public class ScheduleActivity extends Activity {
     }
 
     private int dp(int v) {
-        return Math.round(v * getResources().getDisplayMetrics().density);
+        return Math.round(v * a.getResources().getDisplayMetrics().density);
     }
 
     // ------------------------------------------------------------------ Liste
@@ -274,7 +282,7 @@ public class ScheduleActivity extends Activity {
             if (!(o instanceof Game)) {
                 String s = (String) o;
                 boolean section = s.startsWith("#");
-                TextView h = cv instanceof TextView ? (TextView) cv : new TextView(ScheduleActivity.this);
+                TextView h = cv instanceof TextView ? (TextView) cv : new TextView(a);
                 h.setText(section ? s.substring(1) : s);
                 h.setAllCaps(true);
                 h.setLetterSpacing(0.08f);
@@ -297,7 +305,7 @@ public class ScheduleActivity extends Activity {
         final android.widget.ImageView homeImg, awayImg;
 
         Row() {
-            super(ScheduleActivity.this);
+            super(a);
             setOrientation(HORIZONTAL);
             setGravity(Gravity.CENTER_VERTICAL);
             setPadding(dp(6), dp(9), dp(6), dp(9));
@@ -342,7 +350,7 @@ public class ScheduleActivity extends Activity {
         }
 
         void bind(Game g) {
-            setBackgroundColor(Prefs.isFav(ScheduleActivity.this, g) ? Color.rgb(255, 246, 214) : Color.TRANSPARENT);
+            setBackgroundColor(Prefs.isFav(a, g) ? Color.rgb(255, 246, 214) : Color.TRANSPARENT);
             if (g.status == 4) {
                 left.setText(g.homeScore + ":" + g.awayScore + (g.overtime || g.shootout ? "\n" + GameSheet.resultSuffix(g).trim() : ""));
                 left.setTextColor(C_TEXT);

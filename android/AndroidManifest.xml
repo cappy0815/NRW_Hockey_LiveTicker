@@ -45,12 +45,6 @@
             android:taskAffinity="de.ehvnrw.liveticker.detail"
             android:theme="@android:style/Theme.Material.Dialog.NoActionBar" />
 
-        <!-- Spielplan: Naechste / Ergebnisse / Meine Spiele -->
-        <activity
-            android:name=".ScheduleActivity"
-            android:exported="false"
-            android:label="Spielplan"
-            android:parentActivityName=".MainActivity" />
 
         <service
             android:name=".OverlayService"

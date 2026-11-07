@@ -5,8 +5,8 @@ Live-Ticker für laufende Spiele im Eishockeyverband NRW – als Windows-Program
 | | Windows | Android |
 |---|---|---|
 | Name | EHV-NRW Live-Ticker | EHV Live |
-| Version | 3.1 | 2.6 |
-| Download | [EXE v3.1](https://cappy0815.github.io/downloads/EHV_NRW_LiveTicker_v3.1.exe) | [APK v2.6](https://cappy0815.github.io/downloads/EHV-Live-v2.6.apk) |
+| Version | 3.1 | 2.7 |
+| Download | [EXE v3.1](https://cappy0815.github.io/downloads/EHV_NRW_LiveTicker_v3.1.exe) | [APK v2.7](https://cappy0815.github.io/downloads/EHV-Live-v2.7.apk) |
 
 ![Ticker-Fenster der Windows-Version](screenshot-windows.png)
 
@@ -19,7 +19,7 @@ Live-Ticker für laufende Spiele im Eishockeyverband NRW – als Windows-Program
 - Sparsam: abgefragt werden nur Ligen, die heute spielen; der Spielplan wird höchstens alle 30 Minuten geladen
 
 **Windows:** rahmenlose, verschiebbare Ticker-Fenster (bis zu 8), Töne für Tor, Strafe, Drittelende, Spielende und Bully, Schiedsrichter-Einteilung (HSR und (L)SR) aus esrw.de unter dem Stand.  
-**Android:** schwebendes Floating-Display über anderen Apps, Benachrichtigung mit Stand, Vibration, Display-Wecker über dem Sperrbildschirm, Schiedsrichter-Einteilung im Ticker (aus esrw.de), Update-Prüfung (einmal am Tag, abschaltbar; installiert wird nichts automatisch).
+**Android:** Reiter Live · Spielplan · Meine · Tabellen (wischen zum Wechseln), schwebendes Floating-Display über anderen Apps, Benachrichtigung mit Stand, Vibration, Display-Wecker über dem Sperrbildschirm, Schiedsrichter-Einteilung im Ticker (aus esrw.de), Update-Prüfung (einmal am Tag, abschaltbar; installiert wird nichts automatisch).
 
 ## Installation
 

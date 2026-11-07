@@ -52,6 +52,14 @@ public class MainActivity extends Activity {
     private Button refreshBtn;
     private GameAdapter adapter;
     private boolean loading;
+    // v2.7: Reiter unten (Live · Spielplan · Meine · Tabellen), wischen zum Wechseln
+    static final int T_LIVE = 0, T_PLAN = 1, T_MINE = 2, T_TABLES = 3;
+    private final View[] panes = new View[4];
+    private final TextView[] tabBtns = new TextView[4];
+    private int curTab = T_LIVE;
+    private SchedulePane planPane, minePane;
+    private TablesPane tablesPane;
+    private android.view.GestureDetector swipe;
     private final Runnable autoRefresh = new Runnable() {
         @Override
         public void run() {
@@ -71,7 +79,9 @@ public class MainActivity extends Activity {
         super.onCreate(b);
         setTitle("EHV Live v" + appVersion());
 
-        LinearLayout root = new LinearLayout(this);
+        LinearLayout outer = new LinearLayout(this);
+        outer.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout root = new LinearLayout(this); // Reiter "Live"
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(dp(12), dp(8), dp(12), 0);
 
@@ -97,7 +107,9 @@ public class MainActivity extends Activity {
         pbLp.gravity = Gravity.CENTER_HORIZONTAL;
         pbLp.topMargin = dp(8);
         permBox.addView(pb, pbLp);
-        root.addView(permBox, new LinearLayout.LayoutParams(-1, -2));
+        LinearLayout.LayoutParams permLp = new LinearLayout.LayoutParams(-1, -2);
+        permLp.setMargins(dp(12), dp(8), dp(12), 0);
+        outer.addView(permBox, permLp); // gilt für alle Reiter
 
         LinearLayout bar = new LinearLayout(this);
         bar.setOrientation(LinearLayout.HORIZONTAL);
@@ -155,7 +167,8 @@ public class MainActivity extends Activity {
         nextBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                ScheduleActivity.open(MainActivity.this, ScheduleActivity.TAB_NEXT);
+                planPane.setTab(SchedulePane.TAB_NEXT);
+                selectTab(T_PLAN);
             }
         });
         LinearLayout.LayoutParams nbLp = new LinearLayout.LayoutParams(-2, -2);
@@ -173,7 +186,20 @@ public class MainActivity extends Activity {
         foot.setPadding(0, dp(6), 0, dp(10));
         root.addView(foot);
 
-        setContentView(root);
+        FrameLayout frame = new FrameLayout(this);
+        planPane = new SchedulePane(this, false);
+        minePane = new SchedulePane(this, true);
+        tablesPane = new TablesPane(this);
+        panes[T_LIVE] = root;
+        panes[T_PLAN] = planPane;
+        panes[T_MINE] = minePane;
+        panes[T_TABLES] = tablesPane;
+        for (View v : panes) frame.addView(v, new FrameLayout.LayoutParams(-1, -1));
+        outer.addView(frame, new LinearLayout.LayoutParams(-1, 0, 1f));
+        outer.addView(tabBar(), new LinearLayout.LayoutParams(-1, -2));
+        setContentView(outer);
+        selectTab(T_LIVE);
+        initSwipe();
         showBarLogo();
 
         if (Build.VERSION.SDK_INT >= 33
@@ -188,6 +214,83 @@ public class MainActivity extends Activity {
                 invalidateOptionsMenu();
             }
         });
+    }
+
+    // ------------------------------------------------------------------ Reiter (v2.7)
+    private static final String[] TAB_ICONS = {"\uD83C\uDFD2", "\uD83D\uDCC5", "\u2B50", "\uD83D\uDCCA"};
+    private static final String[] TAB_NAMES = {"Live", "Spielplan", "Meine", "Tabellen"};
+
+    private LinearLayout tabBar() {
+        LinearLayout bar = new LinearLayout(this);
+        bar.setOrientation(LinearLayout.VERTICAL);
+        View line = new View(this);
+        line.setBackgroundColor(Color.rgb(220, 223, 227));
+        bar.addView(line, new LinearLayout.LayoutParams(-1, dp(1)));
+        LinearLayout row = new LinearLayout(this);
+        row.setBackgroundColor(Color.rgb(248, 249, 250));
+        for (int i = 0; i < 4; i++) {
+            final int t = i;
+            TextView b = new TextView(this);
+            b.setGravity(Gravity.CENTER);
+            b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+            b.setPadding(0, dp(6), 0, dp(8));
+            b.setSingleLine(false);
+            b.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    selectTab(t);
+                }
+            });
+            tabBtns[i] = b;
+            row.addView(b, new LinearLayout.LayoutParams(0, -2, 1f));
+        }
+        bar.addView(row);
+        return bar;
+    }
+
+    private void selectTab(int t) {
+        curTab = t;
+        for (int i = 0; i < 4; i++) {
+            panes[i].setVisibility(i == t ? View.VISIBLE : View.GONE);
+            boolean on = i == t;
+            android.text.SpannableString sp = new android.text.SpannableString(TAB_ICONS[i] + "\n" + TAB_NAMES[i]);
+            sp.setSpan(new android.text.style.RelativeSizeSpan(1.5f), 0, TAB_ICONS[i].length(), 0);
+            tabBtns[i].setText(sp);
+            tabBtns[i].setTextColor(on ? C_GREEN : C_MUTED);
+            tabBtns[i].setTypeface(on ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT);
+            tabBtns[i].setAlpha(on ? 1f : 0.75f);
+        }
+        if (t == T_PLAN) planPane.shown();
+        else if (t == T_MINE) minePane.shown();
+        else if (t == T_TABLES) tablesPane.shown();
+    }
+
+    /** Wischen nach links/rechts wechselt den Reiter (Listen scrollen weiter senkrecht) */
+    private void initSwipe() {
+        swipe = new android.view.GestureDetector(this, new android.view.GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onFling(android.view.MotionEvent e1, android.view.MotionEvent e2, float vx, float vy) {
+                if (e1 == null || e2 == null) return false;
+                float dx = e2.getX() - e1.getX(), dy = e2.getY() - e1.getY();
+                if (Math.abs(dx) < dp(90) || Math.abs(dx) < Math.abs(dy) * 2 || Math.abs(vx) < 500) return false;
+                int t = curTab + (dx < 0 ? 1 : -1);
+                if (t < 0 || t > 3) return false;
+                selectTab(t);
+                return true;
+            }
+        });
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(android.view.MotionEvent ev) {
+        if (swipe != null) swipe.onTouchEvent(ev);
+        return super.dispatchTouchEvent(ev);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (curTab != T_LIVE) selectTab(T_LIVE); // Zurück führt erst zur Live-Liste
+        else super.onBackPressed();
     }
 
     /** Tipp auf „⬆ Update“ in der Titelleiste */
@@ -325,15 +428,11 @@ public class MainActivity extends Activity {
     public boolean onCreateOptionsMenu(Menu menu) {
         // v2.6: ⬆ nur, wenn eine neuere Version gefunden wurde
         if (Update.available(this)) menu.add(0, 5, 0, "\u2B06 Update").setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-        MenuItem plan = menu.add(0, 4, 0, "Spielplan");
-        plan.setIcon(R.drawable.ic_calendar);
-        plan.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
         MenuItem opt = menu.add(0, 3, 0, "Optionen");
         opt.setIcon(R.drawable.ic_gear);
         opt.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
         // nur Symbole, damit der Titel "EHV Live" Platz hat (lange druecken zeigt den Namen)
         menu.add(0, 1, 1, "Hilfe").setIcon(R.drawable.ic_help).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-        menu.add(0, 2, 2, "Beenden").setIcon(R.drawable.ic_power).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
         return true;
     }
 
@@ -347,16 +446,8 @@ public class MainActivity extends Activity {
             showOptions();
             return true;
         }
-        if (item.getItemId() == 4) {
-            ScheduleActivity.open(this, ScheduleActivity.TAB_NEXT);
-            return true;
-        }
         if (item.getItemId() == 5) {
             showUpdate();
-            return true;
-        }
-        if (item.getItemId() == 2) {
-            quitApp();
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -419,8 +510,12 @@ public class MainActivity extends Activity {
         item(box, "\uD83D\uDCCB", "Lange drücken: Aufstellung beider Teams (sobald eingetragen) – auch per Knopf im Detailfenster");
         item(box, "\u23F2", "Aktualisiert sich automatisch, solange die App offen ist");
 
-        section(box, "Spielplan (Kalender-Symbol oben)");
-        item(box, "\uD83D\uDCC5", "„Nächste“: Spiele der nächsten 7 Tage · „Ergebnisse“: letzte 7 Tage · „Meine Spiele“: hervorgehobene Teams");
+        section(box, "Reiter unten");
+        item(box, "\uD83C\uDFD2", "„Live“: die heutige Spielliste");
+        item(box, "\uD83D\uDCC5", "„Spielplan“: „Nächste“ = Spiele der nächsten 7 Tage · „Ergebnisse“ = letzte 7 Tage");
+        item(box, "\u2B50", "„Meine“: kommende Spiele und letzte Ergebnisse der hervorgehobenen Teams (Optionen → Hervorhebung)");
+        item(box, "\uD83D\uDCCA", "„Tabellen“: alle Ligen nach Altersklasse, Ligen der eigenen Teams oben – antippen zeigt die Tabelle");
+        item(box, "\u2194", "Nach links/rechts wischen wechselt den Reiter, „Zurück“ führt zur Live-Liste, \u21BB lädt den Spielplan neu");
         item(box, "\uD83D\uDC46", "Spiel antippen: Steckbrief mit Halle, Drittelergebnissen und Torschützen");
         item(box, "\uD83D\uDCCD", "Halle antippen öffnet die Route in der Karten-App, „Kalender“ trägt das Spiel ein, „Tabelle“ zeigt die Liga");
         item(box, "\u2753", "Läuft heute nichts mehr, erscheint in der Liste der Knopf „Nächste Spiele anzeigen“");
@@ -445,7 +540,7 @@ public class MainActivity extends Activity {
                 + "aus den Einteilungen auf esrw.de, sofern dort eingetragen (oben in Stufe 3 und im Detailfenster)");
 
         section(box, "Beenden");
-        item(box, "\uD83D\uDED1", "„Beenden“ oben rechts schließt alle Displays und die App – "
+        item(box, "\uD83D\uDED1", "„App beenden“ unten in den Optionen (\u2699) schließt alle Displays und die App – "
                 + "oder „Beenden“ in der Benachrichtigung");
         item(box, "\u23F0", "Gibt es Vormerkungen, fragt die App: „Alles beenden“ oder „Nur App schließen“ (Vormerkungen bleiben)");
 
@@ -554,6 +649,9 @@ public class MainActivity extends Activity {
 
     // ------------------------------------------------------------------ Changelog
     private static final String[][] CHANGELOG = {
+            {"2.7", "Neue Reiter unten: Live · Spielplan · Meine · Tabellen – wischen zum Wechseln\n"
+                    + "„Tabellen“: alle Ligen nach Altersklasse, Ligen der eigenen Teams oben\n"
+                    + "Kopfleiste nur noch Optionen und Hilfe, „App beenden“ jetzt in den Optionen"},
             {"2.6", "Schiedsrichter im Ticker: aus den Einteilungen von esrw.de (Stufe 3 und Detailfenster)\n"
                     + "Update-Prüfung: einmal am Tag (abschaltbar), „⬆ Update“ oben, Abschnitt „Updates“ in den Optionen"},
             {"2.51", "Neues App-Icon: Puck auf Eis mit EHV-Farbstreifen (wie die Windows-Version)"},
@@ -739,6 +837,12 @@ public class MainActivity extends Activity {
 
         Ui.dialog(new android.app.AlertDialog.Builder(this)
                 .setView(withScrollHint(sv))
+                .setNeutralButton("App beenden", new android.content.DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(android.content.DialogInterface d, int which) {
+                        quitApp(); // v2.7: aus der Kopfleiste hierher verschoben
+                    }
+                })
                 .setNegativeButton("Abbrechen", null)
                 .setPositiveButton("Speichern", new android.content.DialogInterface.OnClickListener() {
                     @Override
