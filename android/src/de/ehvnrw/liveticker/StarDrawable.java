@@ -20,12 +20,12 @@ class StarDrawable extends Drawable {
         this.size = sizePx;
         line.setStyle(Paint.Style.STROKE);
         line.setStrokeJoin(Paint.Join.ROUND);
-        line.setStrokeWidth(Math.max(1.5f, sizePx * 0.07f));
+        line.setStrokeWidth(Math.max(2f, sizePx * 0.07f));
         line.setColor(color);
         txt.setColor(color);
         txt.setTypeface(Typeface.DEFAULT_BOLD);
         txt.setTextAlign(Paint.Align.CENTER);
-        txt.setTextSize(sizePx * 0.42f);
+        txt.setTextSize(sizePx * 0.40f); // v2.91: Zahl größer
         setBounds(0, 0, sizePx, sizePx);
     }
 
@@ -33,7 +33,7 @@ class StarDrawable extends Drawable {
     public void draw(Canvas c) {
         float w = getBounds().width(), h = getBounds().height();
         float cx = getBounds().left + w / 2f, cy = getBounds().top + h * 0.54f;
-        float ro = Math.min(w, h) * 0.48f, ri = ro * 0.5f;
+        float ro = Math.min(w, h) * 0.47f, ri = ro * 0.6f; // v2.91: dickerer Stern, mehr Platz für die Zahl
         Path p = new Path();
         for (int i = 0; i < 10; i++) {
             double ang = Math.PI / 2 + i * Math.PI / 5; // Spitze nach oben
@@ -45,7 +45,7 @@ class StarDrawable extends Drawable {
         p.close();
         c.drawPath(p, line);
         Paint.FontMetrics fm = txt.getFontMetrics();
-        c.drawText(label, cx, cy - (fm.ascent + fm.descent) / 2f + h * 0.02f, txt);
+        c.drawText(label, cx, cy - (fm.ascent + fm.descent) / 2f + h * 0.03f, txt);
     }
 
     @Override

@@ -462,6 +462,9 @@ final class GameSheet {
                 if (Math.abs(dx) < dp(a, 80) || Math.abs(dx) < Math.abs(dy) * 2 || Math.abs(vx) < 500) return false;
                 int t = cur[0] + (dx < 0 ? 1 : -1);
                 if (t < 0 || t > 3) return false;
+                // v2.91: lässt sich die Liste noch seitlich schieben, erst schieben, am Rand dann Seite wechseln
+                View hs = pages[cur[0]].findViewWithTag("hscroll");
+                if (hs != null && hs.canScrollHorizontally(dx < 0 ? 1 : -1)) return false;
                 want[0] = t;
                 select[0].run();
                 return true;
@@ -480,8 +483,16 @@ final class GameSheet {
         box.addView(state);
         final TableLayout table = new TableLayout(a);
         table.setColumnStretchable(1, true);
-        table.setColumnShrinkable(1, true);
-        box.addView(table, new LinearLayout.LayoutParams(-1, -2));
+        if (page == 0) {
+            table.setColumnShrinkable(1, true);
+            box.addView(table, new LinearLayout.LayoutParams(-1, -2));
+        } else { // v2.91: Statistik seitlich scrollbar, Namen vollständig
+            android.widget.HorizontalScrollView hs = new android.widget.HorizontalScrollView(a);
+            hs.setFillViewport(true);
+            hs.setTag("hscroll");
+            hs.addView(table, new android.widget.FrameLayout.LayoutParams(-2, -2));
+            box.addView(hs, new LinearLayout.LayoutParams(-1, -2));
+        }
         final String[] types = {null, "FieldPlayers", "Goalkeepers", "BadBoys"};
         final Handler ui = new Handler(Looper.getMainLooper());
         new Thread(new Runnable() {
@@ -516,7 +527,7 @@ final class GameSheet {
                                 : page == 1 ? "Sp = Spiele · T = Tore · A = Assists · P = Punkte · SM = Strafminuten · Top 50 der Liga"
                                 : page == 2 ? "Sp = Spiele · GT = Gegentore · Ø = Gegentore je Spiel · Sv% = Fangquote (nur, wo Schüsse erfasst sind)"
                                 : "Sp = Spiele · SM = Strafminuten · 2′ / 5′ = kleine / große Strafen · D = Disziplinar- und Matchstrafen · Top 50";
-                        TextView note = text(a, n + (page == 0 ? "" : "\nQuelle: Liga-Statistik ehv-nrw.de · wischen für die nächste Seite"), 11, C_MUTED, false);
+                        TextView note = text(a, n + (page == 0 ? "" : "\nQuelle: Liga-Statistik ehv-nrw.de · Liste seitlich schieben, am Rand wischen = nächste Seite"), 11, C_MUTED, false);
                         note.setPadding(0, dp(a, 8), 0, 0);
                         box.addView(note);
                     }
@@ -541,9 +552,9 @@ final class GameSheet {
             }
             return;
         }
-        if (page == 1) table.addView(row(a, true, false, null, "#", "Spieler", "Sp", "T", "A", "P", "SM"));
-        else if (page == 2) table.addView(row(a, true, false, null, "#", "Spieler", "Sp", "GT", "Ø", "Sv%"));
-        else table.addView(row(a, true, false, null, "#", "Spieler", "Sp", "SM", "2′", "5′", "D"));
+        if (page == 1) table.addView(row(a, true, false, null, true, "#", "Spieler", "Sp", "T", "A", "P", "SM"));
+        else if (page == 2) table.addView(row(a, true, false, null, true, "#", "Spieler", "Sp", "GT", "Ø", "Sv%"));
+        else table.addView(row(a, true, false, null, true, "#", "Spieler", "Sp", "SM", "2′", "5′", "D"));
         int max = page == 2 ? rows.size() : Math.min(50, rows.size());
         for (int i = 0; i < max; i++) {
             JSONObject r = rows.get(i);
@@ -555,22 +566,27 @@ final class GameSheet {
             String logo = Api.logoUrl(teamId);
             String rank = String.valueOf(i + 1);
             if (page == 1) {
-                table.addView(row(a, false, fav, logo, rank, who, r.optString("gamesPlayed"), r.optString("goals"),
+                table.addView(row(a, false, fav, logo, true, rank, who, r.optString("gamesPlayed"), r.optString("goals"),
                         r.optString("assists"), r.optString("points"), r.optString("penaltyMinutes")));
             } else if (page == 2) {
                 double sv = r.optDouble("savePercentage", 0);
-                table.addView(row(a, false, fav, logo, rank, who, r.optString("gamesPlayed"), r.optString("goalsAgainst"),
+                table.addView(row(a, false, fav, logo, true, rank, who, r.optString("gamesPlayed"), r.optString("goalsAgainst"),
                         String.format(Locale.GERMANY, "%.2f", r.optDouble("goalsAgainstAverage", 0)),
                         sv > 0 ? String.format(Locale.GERMANY, "%.1f", sv) : "–"));
             } else {
                 int d = r.optInt("misconducts") + r.optInt("gameMisconducts") + r.optInt("matchPenalties");
-                table.addView(row(a, false, fav, logo, rank, who, r.optString("gamesPlayed"), r.optString("penaltyMinutes"),
+                table.addView(row(a, false, fav, logo, true, rank, who, r.optString("gamesPlayed"), r.optString("penaltyMinutes"),
                         r.optString("minorPenalties"), r.optString("majorPenalties"), d == 0 ? "" : String.valueOf(d)));
             }
         }
     }
 
     private static TableRow row(Activity a, boolean head, boolean fav, String logo, String... cells) {
+        return row(a, head, fav, logo, false, cells);
+    }
+
+    /** full = Spalte 2 nicht abschneiden (Statistik-Seiten, seitlich scrollbar) */
+    private static TableRow row(Activity a, boolean head, boolean fav, String logo, boolean full, String... cells) {
         TableRow tr = new TableRow(a);
         tr.setPadding(0, dp(a, 5), 0, dp(a, 5));
         if (fav) tr.setBackgroundColor(C_FAV);
@@ -580,7 +596,8 @@ final class GameSheet {
             t.setPadding(dp(a, 4), 0, dp(a, 4), 0);
             if (i == 1) {
                 t.setSingleLine(true);
-                t.setEllipsize(TextUtils.TruncateAt.END);
+                if (!full) t.setEllipsize(TextUtils.TruncateAt.END);
+                else t.setPadding(dp(a, 4), 0, dp(a, 10), 0);
                 if (!head) { // kleines Wappen vor dem Teamnamen
                     LinearLayout cell = new LinearLayout(a);
                     cell.setGravity(Gravity.CENTER_VERTICAL);
