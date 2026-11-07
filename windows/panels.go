@@ -278,8 +278,10 @@ func panelClick(p *panel, hv string, dbl bool) {
 	case "upd":
 		switch hv {
 		case "btn0":
+			// Download öffnen, dann beenden: eine laufende EXE lässt sich unter Windows nicht ersetzen
 			shellOpen(updDownloadURL())
 			panelClose(p)
+			pPostMessageW.Call(hMain, WM_CLOSE, 0, 0)
 		case "btn1":
 			shellOpen(updProjectPage)
 		case "btn2":
@@ -701,10 +703,17 @@ func paintSheet(c *canvas, p *panel, w, h int) {
 	for i, b := range bs {
 		x := bx + i*(bw+10)
 		if b.label == "RED+" {
-			if im := redButtonImg(g.redImg); im != nil {
-				c.imageFit(im, x, by, bw, 30)
-				continue
+			col := uint32(0x1B1B1B)
+			if p.hover == "btn"+strconv.Itoa(i) {
+				col = lighter(col)
 			}
+			c.round(x, by, bw, 30, 15, col)
+			if im := redButtonImg(g.redImg); im != nil {
+				c.imageFit(im, x+6, by+5, bw-12, 20)
+			} else {
+				c.line(x, by, bw, 30, "RED+", ui(9, true), cWhite, DT_CENTER)
+			}
+			continue
 		}
 		c.pill(x, by, bw, 30, b.label, b.col, p.hover == "btn"+strconv.Itoa(i))
 	}

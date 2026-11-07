@@ -11,12 +11,13 @@ import (
 	"regexp"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 	"unsafe"
 )
 
-const appVersion = "3.3"
+const appVersion = "3.4"
 
 const disclaimer = "Inoffizielles, privates Tool – es besteht keine Verbindung zum Eishockeyverband NRW (EHV NRW) oder zu hockeydata.net.\r\n\r\n" +
 	"Angezeigt werden ausschließlich öffentlich zugängliche Daten, wie sie auch auf ehv-nrw.de und esrw.de zu sehen sind.\r\n\r\n" +
@@ -292,8 +293,11 @@ type col struct {
 	align uintptr
 }
 
-var cols = []col{{34, 250, "LIGA", DT_LEFT}, {292, 170, "HEIM", DT_LEFT}, {468, 170, "GAST", DT_LEFT},
-	{642, 54, "STAND", DT_CENTER}, {706, mainW - 20 - 706, "SPIELZEIT", DT_LEFT}}
+// Spalten: rechts neben SPIELZEIT ist Platz für den RED+-Knopf (x 766 bis 802)
+var cols = []col{{34, 222, "LIGA", DT_LEFT}, {262, 166, "HEIM", DT_LEFT}, {434, 166, "GAST", DT_LEFT},
+	{606, 52, "STAND", DT_CENTER}, {664, 94, "SPIELZEIT", DT_LEFT}}
+
+const redPillX = 766 // linke Kante des RED+-Knopfs in der Liste
 
 func paintMain(c *canvas, w, h int) {
 	c.rect(0, 0, w, h, cBg)
@@ -367,6 +371,14 @@ func paintMain(c *canvas, w, h int) {
 			x += 12
 		}
 		c.line(x, y, cols[4].x+cols[4].w-x, rowH, g.timeText, ui(8.5, false), txt, DT_LEFT)
+		if g.redURL != "" && optRedPlus {
+			col := uint32(cRed)
+			if hover == "red"+strconv.Itoa(i) {
+				col = lighter(cRed)
+			}
+			c.round(redPillX, y+rowH/2-10, 36, 20, 10, col)
+			c.line(redPillX, y+rowH/2-10, 36, 20, "RED+", ui(7, true), cWhite, DT_CENTER)
+		}
 	}
 	// Bildlaufleiste (nur wenn noetig)
 	if total := len(rows) * rowH; total > lh {
@@ -423,6 +435,9 @@ func mainHit(x, y int) string {
 	case y >= listTop && y < listTop+listH() && x >= 12 && x < w-12:
 		i := (y - listTop + scrollY) / rowH
 		if i < len(rows) && rows[i].kind != 2 {
+			if rows[i].redURL != "" && optRedPlus && x >= redPillX-4 && x < redPillX+40 {
+				return "red" + strconv.Itoa(i)
+			}
 			return "row" + strconv.Itoa(i)
 		}
 	}
@@ -491,6 +506,10 @@ func mainProc(hwnd, msg, wParam, lParam uintptr) uintptr {
 			helpOpen()
 		case hv == "opt":
 			optionsOpen()
+		case len(hv) > 3 && hv[:3] == "red":
+			if i, err := strconv.Atoi(hv[3:]); err == nil && i < len(rows) && strings.HasPrefix(rows[i].redURL, "https://redirect.red.sport/") {
+				shellOpen(rows[i].redURL)
+			}
 		case len(hv) > 3 && hv[:3] == "row":
 			sel, _ = strconv.Atoi(hv[3:])
 			if uint32(msg) == WM_LBUTTONDBLCLK {

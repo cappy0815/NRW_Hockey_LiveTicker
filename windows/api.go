@@ -191,13 +191,23 @@ func serverOk() bool {
 // ---------------------------------------------------------------- Spielzeilen
 type game struct {
 	id, div, league, home, away, score, timeText string
+	redURL                                       string // RED+-Stream-Link (leer = keiner)
 	kind                                         int // 0 live, 1 anstehend, 2 Trennzeile
 	fav                                          bool
 	sortKey                                      string
 }
 
+// Liga für die Liste: "U15 Regionalliga A" – ohne NRW-Präfix, Saison und "Hauptrunde"
+var reHauptrunde = regexp.MustCompile(`(?i)\s*\bhauptrunde\b`)
+
 func leagueText(r map[string]any) string {
-	return strings.TrimSpace(jStr(r, "leagueName")) + " · " + strings.TrimSpace(jStr(r, "divisionName"))
+	l := strings.TrimSpace(reNRW.ReplaceAllString(jStr(r, "leagueName"), ""))
+	d := strings.TrimSpace(reSeasonAny.ReplaceAllString(jStr(r, "divisionName"), ""))
+	d = strings.TrimSpace(reHauptrunde.ReplaceAllString(d, ""))
+	if d == "" || strings.Contains(l, d) {
+		return l
+	}
+	return l + " · " + d
 }
 
 // Spielplan aller Ligen: anstehende Spiele von heute + Ligen, die heute spielen.
@@ -245,13 +255,10 @@ func loadUpcoming(status func(string)) (upcomingResult, bool) {
 			if jBool(r, "timeIsToBeDetermined") {
 				t = "n.n."
 			}
-			hall := jStr(r, "location.shortname")
-			txt := "Bully " + t + " Uhr"
-			if hall != "" {
-				txt += " · " + hall
-			}
+			txt := "Bully " + t
+			redURL, _ := redPlus(r)
 			res.games = append(res.games, game{
-				id: jStr(r, "id"), div: jStr(r, "divisionId"), league: leagueText(r),
+				id: jStr(r, "id"), div: jStr(r, "divisionId"), league: leagueText(r), redURL: redURL,
 				home: jStr(r, "homeTeamLongName"), away: jStr(r, "awayTeamLongName"),
 				score: "–", timeText: txt, kind: 1, sortKey: t,
 			})
@@ -295,8 +302,9 @@ func loadLive(ask []string, status func(string)) (live []game, errCount int, ok 
 				continue
 			}
 			seen[id] = true
+			redURL, _ := redPlus(r)
 			live = append(live, game{
-				id: id, div: jStr(r, "divisionId"), league: leagueText(r),
+				id: id, div: jStr(r, "divisionId"), league: leagueText(r), redURL: redURL,
 				home: jStr(r, "homeTeamLongName"), away: jStr(r, "awayTeamLongName"),
 				score:    fmt.Sprintf("%d : %d", jInt(r, "homeTeamScore", 0), jInt(r, "awayTeamScore", 0)),
 				timeText: phaseText(jStr(r, "liveTimeGamePhase"), jInt(r, "liveTime", 0), 1),

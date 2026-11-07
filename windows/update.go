@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -92,6 +93,12 @@ func updCheck(manual bool) {
 	updMu.Unlock()
 	if manual {
 		setStatus("Prüfe auf Updates …")
+		updMu.Lock()
+		updMsg = "Prüfe auf Updates …"
+		updMu.Unlock()
+		if p := panels["opt"]; p != nil {
+			invalidate(p.hwnd)
+		}
 	}
 	go func() {
 		rel, err := updFetch()
@@ -120,14 +127,19 @@ func updDone(manual bool) {
 		iniWrite(iniFile, "Update", "Page", pg)
 	}
 	if manual {
+		var msg string
 		switch {
 		case !ok:
-			status = "Update-Prüfung nicht möglich – keine Verbindung zu GitHub"
+			msg = "Keine Verbindung zu GitHub – Prüfung nicht möglich"
 		case updAvailable():
-			status = "Neue Version " + latest + " verfügbar – Knopf „Update“ oben rechts"
+			msg = "Neue Version " + latest + " verfügbar – Knopf „Update“ oben rechts"
 		default:
-			status = "Aktuell: Version " + appVersion
+			msg = "Aktuell: Version " + appVersion
 		}
+		status = msg
+		updMu.Lock()
+		updMsg = msg
+		updMu.Unlock()
 	}
 	if p := panels["opt"]; p != nil {
 		invalidate(p.hwnd)
@@ -147,14 +159,30 @@ func updLatestText() string {
 	return updLatest
 }
 
+// Ergebnis der letzten manuellen Prüfung, sichtbar im Optionsfenster
+var updMsg string
+
 func updLastText() string {
 	updMu.Lock()
-	last := updLast
+	last, msg := updLast, updMsg
 	updMu.Unlock()
-	if last.IsZero() {
-		return "Zuletzt geprüft: noch nie"
+	zl := "Zuletzt geprüft: noch nie"
+	if !last.IsZero() {
+		zl = "Zuletzt geprüft: " + last.Format("02.01.2006 15:04")
 	}
-	return "Zuletzt geprüft: " + last.Format("02.01.2006 15:04")
+	if msg != "" {
+		return msg + " · " + zl
+	}
+	return zl
+}
+
+// Pfad der laufenden EXE (damit man weiß, wo die neue hin soll)
+func exePath() string {
+	p, err := os.Executable()
+	if err != nil {
+		return "(unbekannt)"
+	}
+	return p
 }
 
 // Download-Adresse: die EXE, sonst die Seite der Version, sonst die Projektseite
@@ -188,7 +216,9 @@ func updOpenPanel() {
 	docOpen("upd", "Update verfügbar", []docLine{
 		{kind: 0, v: "NEUE VERSION " + updLatestText()},
 		{kind: 2, v: "Installiert ist Version " + appVersion + ". „Herunterladen“ öffnet die Download-Seite im Browser."},
-		{kind: 2, v: "Die neue EXE herunterladen und die alte ersetzen oder daneben legen und starten. Einstellungen, Töne und Position bleiben unter %APPDATA%\\EHV-Live-Ticker erhalten."},
+		{kind: 2, v: "„Herunterladen“ öffnet die Seite im Browser. Danach schließt sich dieses Programm, damit die EXE ersetzt werden kann. Die neue Datei dann starten."},
+		{kind: 2, v: "Dieses Programm liegt hier: " + exePath()},
+		{kind: 2, v: "Einstellungen, Töne und Position bleiben unter %APPDATA%\\EHV-Live-Ticker erhalten."},
 		{kind: 2, v: "Es wird nichts automatisch installiert. Windows kann bei einer neu heruntergeladenen Datei wieder eine Warnung zeigen (unbekannter Herausgeber)."},
 	})
 }

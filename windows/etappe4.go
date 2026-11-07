@@ -377,7 +377,7 @@ func helpDoc() []docLine {
 		sec("UPDATES"),
 		it("Knopf „Update“", "oben in der Titelleiste, sobald eine neue Version bereitsteht"),
 		it("Prüfung", "einmal täglich automatisch, oder „Jetzt auf Updates prüfen“ in den Optionen"),
-		it("Installation", "neue EXE herunterladen und starten – nichts wird automatisch installiert"),
+		it("Installation", "„Herunterladen“ öffnet die Seite und beendet das Programm – danach die neue EXE starten. Nichts wird automatisch installiert"),
 		sec("HINWEIS"),
 		{kind: 2, v: strings.ReplaceAll(disclaimer, "\r\n\r\n", " ")},
 		{kind: 3, v: "Datenquellen: ehv-nrw.de und hockeydata.net (Spiele), esrw.de (Schiedsrichter)"},
@@ -388,6 +388,7 @@ func helpDoc() []docLine {
 }
 
 var changelog = [][2]string{
+	{"3.4", "Optionen: Ergebnis der Update-Prüfung steht im Fenster|Update-Download: Programm wird danach beendet (EXE-Pfad wird angezeigt)|RED+-Knopf in der Liste (Logo-Knopf, abschaltbar) und im Steckbrief in voller Höhe|Liste: Liga ohne „Hauptrunde“ und Saison, Spielzeit kürzer und lesbar"},
 	{"3.3", "Steckbrief: RED+-Button mit Logo, wenn ein Stream-Link vorliegt|Optionen › LINKS: RED+ Button ein-/ausschalten"},
 	{"3.2", "Spielplan: neuer Reiter „Tabellen“ – alle Ligen nach Altersklasse, Ligen der eigenen Teams oben, Klick öffnet die Tabelle|Hilfe: Link zur Projektseite (cappy0815.github.io)"},
 	{"3.1", "Schiedsrichter (HSR und (L)SR) aus esrw.de unter dem Spielstand im Ticker – nur bei eindeutigem Treffer (Datum, Zeit, Teams)|Update-Prüfung: einmal täglich und per Knopf in den Optionen|Knopf „Update“ oben in der Titelleiste öffnet die Download-Seite – nichts wird automatisch installiert|Optionen: Update-Prüfung ein-/ausschalten"},
