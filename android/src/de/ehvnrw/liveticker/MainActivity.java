@@ -217,32 +217,46 @@ public class MainActivity extends Activity {
     }
 
     // ------------------------------------------------------------------ Reiter (v2.7)
-    private static final String[] TAB_ICONS = {"\uD83C\uDFD2", "\uD83D\uDCC5", "\u2B50", "\uD83D\uDCCA"};
+    // v2.71: Linien-Symbole (Vektor, eingefärbt) statt Emojis, aktiver Reiter mit grüner Pille
+    private static final int[] TAB_ICONS = {R.drawable.ic_tab_live, R.drawable.ic_tab_plan, R.drawable.ic_tab_mine, R.drawable.ic_tab_tables};
     private static final String[] TAB_NAMES = {"Live", "Spielplan", "Meine", "Tabellen"};
+    private final ImageView[] tabIcons = new ImageView[4];
 
     private LinearLayout tabBar() {
         LinearLayout bar = new LinearLayout(this);
         bar.setOrientation(LinearLayout.VERTICAL);
         View line = new View(this);
-        line.setBackgroundColor(Color.rgb(220, 223, 227));
+        line.setBackgroundColor(Color.rgb(226, 229, 233));
         bar.addView(line, new LinearLayout.LayoutParams(-1, dp(1)));
         LinearLayout row = new LinearLayout(this);
-        row.setBackgroundColor(Color.rgb(248, 249, 250));
+        row.setBackgroundColor(Color.WHITE);
         for (int i = 0; i < 4; i++) {
             final int t = i;
+            LinearLayout cell = new LinearLayout(this);
+            cell.setOrientation(LinearLayout.VERTICAL);
+            cell.setGravity(Gravity.CENTER_HORIZONTAL);
+            cell.setPadding(0, dp(8), 0, dp(8));
+            ImageView iv = new ImageView(this);
+            iv.setImageResource(TAB_ICONS[i]);
+            iv.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+            iv.setPadding(dp(18), dp(4), dp(18), dp(4));
+            cell.addView(iv, new LinearLayout.LayoutParams(dp(60), dp(32)));
             TextView b = new TextView(this);
+            b.setText(TAB_NAMES[i]);
             b.setGravity(Gravity.CENTER);
             b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-            b.setPadding(0, dp(6), 0, dp(8));
-            b.setSingleLine(false);
-            b.setOnClickListener(new View.OnClickListener() {
+            b.setSingleLine(true);
+            b.setPadding(0, dp(3), 0, 0);
+            cell.addView(b);
+            cell.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     selectTab(t);
                 }
             });
+            tabIcons[i] = iv;
             tabBtns[i] = b;
-            row.addView(b, new LinearLayout.LayoutParams(0, -2, 1f));
+            row.addView(cell, new LinearLayout.LayoutParams(0, -2, 1f));
         }
         bar.addView(row);
         return bar;
@@ -253,12 +267,18 @@ public class MainActivity extends Activity {
         for (int i = 0; i < 4; i++) {
             panes[i].setVisibility(i == t ? View.VISIBLE : View.GONE);
             boolean on = i == t;
-            android.text.SpannableString sp = new android.text.SpannableString(TAB_ICONS[i] + "\n" + TAB_NAMES[i]);
-            sp.setSpan(new android.text.style.RelativeSizeSpan(1.5f), 0, TAB_ICONS[i].length(), 0);
-            tabBtns[i].setText(sp);
-            tabBtns[i].setTextColor(on ? C_GREEN : C_MUTED);
+            int col = on ? C_GREEN : C_MUTED;
+            tabIcons[i].setImageTintList(android.content.res.ColorStateList.valueOf(col));
+            if (on) {
+                GradientDrawable pill = new GradientDrawable();
+                pill.setCornerRadius(dp(16));
+                pill.setColor(Color.rgb(220, 240, 228)); // helles EHV-Grün
+                tabIcons[i].setBackground(pill);
+            } else {
+                tabIcons[i].setBackground(null);
+            }
+            tabBtns[i].setTextColor(col);
             tabBtns[i].setTypeface(on ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT);
-            tabBtns[i].setAlpha(on ? 1f : 0.75f);
         }
         if (t == T_PLAN) planPane.shown();
         else if (t == T_MINE) minePane.shown();
@@ -649,6 +669,7 @@ public class MainActivity extends Activity {
 
     // ------------------------------------------------------------------ Changelog
     private static final String[][] CHANGELOG = {
+            {"2.71", "Reiterleiste mit modernen Linien-Symbolen, aktiver Reiter grün hinterlegt"},
             {"2.7", "Neue Reiter unten: Live · Spielplan · Meine · Tabellen – wischen zum Wechseln\n"
                     + "„Tabellen“: alle Ligen nach Altersklasse, Ligen der eigenen Teams oben\n"
                     + "Kopfleiste nur noch Optionen und Hilfe, „App beenden“ jetzt in den Optionen"},

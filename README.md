@@ -5,8 +5,8 @@ Live-Ticker für laufende Spiele im Eishockeyverband NRW – als Windows-Program
 | | Windows | Android |
 |---|---|---|
 | Name | EHV-NRW Live-Ticker | EHV Live |
-| Version | 3.1 | 2.7 |
-| Download | [EXE v3.1](https://cappy0815.github.io/downloads/EHV_NRW_LiveTicker_v3.1.exe) | [APK v2.7](https://cappy0815.github.io/downloads/EHV-Live-v2.7.apk) |
+| Version | 3.1 | 2.71 |
+| Download | [EXE v3.1](https://cappy0815.github.io/downloads/EHV_NRW_LiveTicker_v3.1.exe) | [APK v2.71](https://cappy0815.github.io/downloads/EHV-Live-v2.71.apk) |
 
 ![Ticker-Fenster der Windows-Version](screenshot-windows.png)
 
