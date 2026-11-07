@@ -16,7 +16,7 @@ import (
 	"unsafe"
 )
 
-const appVersion = "3.2"
+const appVersion = "3.3"
 
 const disclaimer = "Inoffizielles, privates Tool – es besteht keine Verbindung zum Eishockeyverband NRW (EHV NRW) oder zu hockeydata.net.\r\n\r\n" +
 	"Angezeigt werden ausschließlich öffentlich zugängliche Daten, wie sie auch auf ehv-nrw.de und esrw.de zu sehen sind.\r\n\r\n" +
@@ -72,6 +72,7 @@ func optionsLoad() {
 	optMinMain = on("HauptMinimieren", "0")
 	optRestore = on("HauptWiederOeffnen", "1")
 	optUpdAuto = on("UpdatePruefen", "1")
+	optRedPlus = on("RedPlusButton", "1")
 }
 
 func isFav(g game) bool { return favOn && favRe != nil && favRe.MatchString(g.home+"|"+g.away) }

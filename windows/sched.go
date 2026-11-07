@@ -21,6 +21,7 @@ type sgame struct {
 	hall, address, periods, extra string
 	scorersH, scorersA            string
 	key                           string // yyyymmddHHMM
+	redURL, redImg                string // RED+-Stream (Link, Button-Bild), leer = keiner
 }
 
 func scorers(v any, path string) string {
@@ -36,6 +37,29 @@ func scorers(v any, path string) string {
 		}
 	}
 	return strings.Join(out, ", ")
+}
+
+// RED+: "streams" ist eine Liste von JSON-Texten mit targetUrl und imgUrl.
+// Nur Adressen der beiden bekannten Hosts werden übernommen.
+func redPlus(r map[string]any) (string, string) {
+	x, _ := jGet(r, "streams")
+	arr, _ := x.([]any)
+	for _, e := range arr {
+		s, _ := e.(string)
+		var v struct {
+			TargetURL string `json:"targetUrl"`
+			ImgURL    string `json:"imgUrl"`
+		}
+		if json.Unmarshal([]byte(s), &v) != nil || !strings.HasPrefix(v.TargetURL, "https://redirect.red.sport/") {
+			continue
+		}
+		img := v.ImgURL
+		if !strings.HasPrefix(img, "https://red-sport.s3.eu-west-1.amazonaws.com/") {
+			img = ""
+		}
+		return v.TargetURL, img
+	}
+	return "", ""
 }
 
 func parseSched(r map[string]any) sgame {
@@ -74,6 +98,7 @@ func parseSched(r map[string]any) sgame {
 	if len(g.date) == 10 {
 		g.key = g.date[6:10] + g.date[3:5] + g.date[0:2] + strings.ReplaceAll(t, ":", "")
 	}
+	g.redURL, g.redImg = redPlus(r)
 	return g
 }
 

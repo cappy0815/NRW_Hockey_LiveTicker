@@ -594,10 +594,58 @@ func sheetLayout(g *sgame) (lines []kv, hs []int, hallTxt string, btnY int) {
 	return lines, hs, hallTxt, y + 10
 }
 
+// RED+-Button: Logo aus den Spieldaten, einmal geladen (Fehler = kein Logo, kein neuer Versuch)
+var (
+	redMu      sync.Mutex
+	redImgs    = map[string]*image{}
+	redPending = map[string]bool{}
+	optRedPlus = true // Optionen › LINKS: RED+-Button im Steckbrief
+)
+
+func redButtonImg(u string) *image {
+	if u == "" {
+		return nil
+	}
+	redMu.Lock()
+	defer redMu.Unlock()
+	if im, ok := redImgs[u]; ok {
+		return im
+	}
+	if !redPending[u] {
+		redPending[u] = true
+		go func() {
+			b := httpGetBin(u)
+			var im *image
+			if len(b) > 0 {
+				im = imageFromPNG(b)
+			}
+			redMu.Lock()
+			redImgs[u] = im
+			delete(redPending, u)
+			redMu.Unlock()
+			pPostMessageW.Call(hMain, wmLogo, 0, 0)
+		}()
+	}
+	return nil
+}
+
+// Button-Geometrie: bei vier Schaltflächen schmaler, damit das Steckbrief-Fenster (460 px) passt
+func sheetBtnGeom(n, w int) (bx, bw int) {
+	bw = 110
+	if n > 3 {
+		bw = 100
+	}
+	bx = (w - (n*bw + (n-1)*10)) / 2
+	return
+}
+
 func sheetBtns(g *sgame) []btn {
 	var b []btn
 	if g.status == 0 && g.utcMs > 0 {
 		b = append(b, btn{"Kalender", cGreen})
+	}
+	if g.redURL != "" && optRedPlus {
+		b = append(b, btn{"RED+", cRed})
 	}
 	if g.div != "" {
 		b = append(b, btn{"Tabelle", cRed})
@@ -649,9 +697,16 @@ func paintSheet(c *canvas, p *panel, w, h int) {
 		c.text(112, y, 328, hs[len(lines)], hallTxt, ui(8.5, false), col, DT_WORDBREAK)
 	}
 	bs := sheetBtns(g)
-	x := (w - (len(bs)*110 + (len(bs)-1)*10)) / 2
+	bx, bw := sheetBtnGeom(len(bs), w)
 	for i, b := range bs {
-		c.pill(x+i*120, by, 110, 30, b.label, b.col, p.hover == "btn"+strconv.Itoa(i))
+		x := bx + i*(bw+10)
+		if b.label == "RED+" {
+			if im := redButtonImg(g.redImg); im != nil {
+				c.imageFit(im, x, by, bw, 30)
+				continue
+			}
+		}
+		c.pill(x, by, bw, 30, b.label, b.col, p.hover == "btn"+strconv.Itoa(i))
 	}
 }
 
@@ -666,9 +721,10 @@ func sheetHit(p *panel, x, y int) string {
 		return "route"
 	}
 	bs := sheetBtns(g)
-	bx := (p.w - (len(bs)*110 + (len(bs)-1)*10)) / 2
+	bx, bw := sheetBtnGeom(len(bs), p.w)
 	for i := range bs {
-		if y >= by && y < by+30 && x >= bx+i*120 && x < bx+i*120+110 {
+		x0 := bx + i*(bw+10)
+		if y >= by && y < by+30 && x >= x0 && x < x0+bw {
 			return "btn" + strconv.Itoa(i)
 		}
 	}
@@ -694,6 +750,10 @@ func sheetClick(hv string) {
 		f := filepath.Join(os.TempDir(), "EHV_Spiel_"+strings.ReplaceAll(g.id, "/", "")+".ics")
 		if os.WriteFile(f, []byte(icsText(g)), 0644) == nil {
 			shellOpen(f)
+		}
+	case "RED+":
+		if strings.HasPrefix(g.redURL, "https://redirect.red.sport/") {
+			shellOpen(g.redURL)
 		}
 	case "Tabelle":
 		tableOpen(g.div, leagueShort(g.league, g.divName))

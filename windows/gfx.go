@@ -249,6 +249,20 @@ func (c *canvas) image(im *image, x, y, box int) {
 	pGdipDeleteGraphics.Call(g)
 }
 
+// Bild in ein Rechteck einpassen (Seitenverhältnis bleibt, zentriert)
+func (c *canvas) imageFit(im *image, x, y, w, h int) {
+	if im == nil || im.w <= 0 || im.t <= 0 {
+		return
+	}
+	scale := math.Min(float64(w)/float64(im.w), float64(h)/float64(im.t))
+	dw, dh := float64(im.w)*scale, float64(im.t)*scale
+	g := c.gp()
+	pGdipDrawImageRectI.Call(g, im.h,
+		uintptr(S(x)+int32(math.Round((float64(w)-dw)/2*sc))), uintptr(S(y)+int32(math.Round((float64(h)-dh)/2*sc))),
+		uintptr(int32(math.Round(dw*sc))), uintptr(int32(math.Round(dh*sc))))
+	pGdipDeleteGraphics.Call(g)
+}
+
 // ---------------------------------------------------------------- Programm-Icon (aus der EXE) zeichnen
 var (
 	pDrawIconEx = user32.NewProc("DrawIconEx")

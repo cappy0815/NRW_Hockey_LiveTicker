@@ -35,6 +35,8 @@ var optCols = [2][]optRow{
 		{kind: 0, label: "HAUPTFENSTER"},
 		{kind: 1, label: "Beim Öffnen eines Tickers minimieren", key: "min"},
 		{kind: 1, label: "Nach dem letzten Ticker wieder öffnen", key: "restore"},
+		{kind: 0, label: "LINKS"},
+		{kind: 1, label: "RED+ Button im Spiel-Steckbrief zeigen", key: "red"},
 	},
 	{
 		{kind: 0, label: "TÖNE"},
@@ -64,7 +66,7 @@ func optRowH(k int) int { return []int{34, 32, 34, 36, 24, 36}[k] }
 
 func optionsOpen() {
 	oTog = map[string]bool{"top": optOnTop, "ev": optEvDefault, "min": optMinMain, "restore": optRestore, "fav": favOn,
-		"tor": optSndTor, "strafe": optSndStrafe, "drittel": optSndDrittel, "spielende": optSndEnde, "bully": optSndBully, "upd": optUpdAuto}
+		"tor": optSndTor, "strafe": optSndStrafe, "drittel": optSndDrittel, "spielende": optSndEnde, "bully": optSndBully, "upd": optUpdAuto, "red": optRedPlus}
 	oSeg = map[string]int{"list": refreshList, "tick": optTickSec, "collapse": optCollapse}
 	oTerms, oFocus = favTerms, false
 	h := 0
@@ -268,6 +270,7 @@ func optionsSave() {
 	w("TonSpielende", b01(oTog["spielende"]))
 	w("TonBully", b01(oTog["bully"]))
 	w("UpdatePruefen", b01(oTog["upd"]))
+	w("RedPlusButton", b01(oTog["red"]))
 	optionsLoad()
 	// sofort anwenden: Vordergrund, Hervorhebung, Spielplan
 	z := ^uintptr(1) // HWND_NOTOPMOST (-2)
@@ -352,6 +355,7 @@ func helpDoc() []docLine {
 		sec("SPIELPLAN"),
 		it("Reiter", "„Nächste“ (7 Tage), „Ergebnisse“ (letzte 7 Tage), „Meine Spiele“ (hervorgehobene Teams), „Tabellen“ (alle Ligen nach Altersklasse)"),
 		it("Tabellen", "Ligen der eigenen Teams stehen oben – Klick auf eine Liga öffnet die Tabelle"),
+		it("RED+", "Steckbrief: Button mit dem RED+-Logo öffnet das Spiel im Stream – nur, wenn ein Link vorliegt. Ein-/Ausschalten unter Optionen › LINKS"),
 		it("Doppelklick", "Steckbrief: Halle, Drittel, Torschützen – Halle anklicken = Route in Google Maps"),
 		it("Kalender", "speichert das Spiel als Termin-Datei und öffnet sie mit deinem Kalender"),
 		it("Tabelle", "aus dem Steckbrief oder im Ticker über „Tabelle ▸“ – eigenes Team gelb"),
@@ -384,6 +388,7 @@ func helpDoc() []docLine {
 }
 
 var changelog = [][2]string{
+	{"3.3", "Steckbrief: RED+-Button mit Logo, wenn ein Stream-Link vorliegt|Optionen › LINKS: RED+ Button ein-/ausschalten"},
 	{"3.2", "Spielplan: neuer Reiter „Tabellen“ – alle Ligen nach Altersklasse, Ligen der eigenen Teams oben, Klick öffnet die Tabelle|Hilfe: Link zur Projektseite (cappy0815.github.io)"},
 	{"3.1", "Schiedsrichter (HSR und (L)SR) aus esrw.de unter dem Spielstand im Ticker – nur bei eindeutigem Treffer (Datum, Zeit, Teams)|Update-Prüfung: einmal täglich und per Knopf in den Optionen|Knopf „Update“ oben in der Titelleiste öffnet die Download-Seite – nichts wird automatisch installiert|Optionen: Update-Prüfung ein-/ausschalten"},
 	{"3.0.1", "Neues Icon: schwarzer Puck auf Eis mit EHV-Farbstreifen|Icon auch in den Titelleisten und im Kopf der Hilfe"},
