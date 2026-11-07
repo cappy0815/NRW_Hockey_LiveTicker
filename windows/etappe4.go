@@ -350,7 +350,8 @@ func helpDoc() []docLine {
 		it("⚙ / ?", "oben rechts: Optionen und diese Hilfe (auch mit F1)"),
 		it("Einstellungen", "liegen unter %APPDATA%\\EHV-Live-Ticker (Optionen, Töne)"),
 		sec("SPIELPLAN"),
-		it("Reiter", "„Nächste“ (7 Tage), „Ergebnisse“ (letzte 7 Tage), „Meine Spiele“ (hervorgehobene Teams)"),
+		it("Reiter", "„Nächste“ (7 Tage), „Ergebnisse“ (letzte 7 Tage), „Meine Spiele“ (hervorgehobene Teams), „Tabellen“ (alle Ligen nach Altersklasse)"),
+		it("Tabellen", "Ligen der eigenen Teams stehen oben – Klick auf eine Liga öffnet die Tabelle"),
 		it("Doppelklick", "Steckbrief: Halle, Drittel, Torschützen – Halle anklicken = Route in Google Maps"),
 		it("Kalender", "speichert das Spiel als Termin-Datei und öffnet sie mit deinem Kalender"),
 		it("Tabelle", "aus dem Steckbrief oder im Ticker über „Tabelle ▸“ – eigenes Team gelb"),
@@ -376,12 +377,14 @@ func helpDoc() []docLine {
 		sec("HINWEIS"),
 		{kind: 2, v: strings.ReplaceAll(disclaimer, "\r\n\r\n", " ")},
 		{kind: 3, v: "Datenquellen: ehv-nrw.de und hockeydata.net (Spiele), esrw.de (Schiedsrichter)"},
+		{kind: 3, v: "Mehr Projekte und Downloads: https://cappy0815.github.io"},
 		{kind: 4},
 		{kind: 3, v: "Gebaut von Justus Jonas & Michael Nowak – mit Claude an der Bande"},
 	}
 }
 
 var changelog = [][2]string{
+	{"3.2", "Spielplan: neuer Reiter „Tabellen“ – alle Ligen nach Altersklasse, Ligen der eigenen Teams oben, Klick öffnet die Tabelle|Hilfe: Link zur Projektseite (cappy0815.github.io)"},
 	{"3.1", "Schiedsrichter (HSR und (L)SR) aus esrw.de unter dem Spielstand im Ticker – nur bei eindeutigem Treffer (Datum, Zeit, Teams)|Update-Prüfung: einmal täglich und per Knopf in den Optionen|Knopf „Update“ oben in der Titelleiste öffnet die Download-Seite – nichts wird automatisch installiert|Optionen: Update-Prüfung ein-/ausschalten"},
 	{"3.0.1", "Neues Icon: schwarzer Puck auf Eis mit EHV-Farbstreifen|Icon auch in den Titelleisten und im Kopf der Hilfe"},
 	{"3.0", "Neu gebaut als eigenständige EXE (ohne AutoIt) – weniger Fehlalarme von Virenscannern|Eigenes, flaches Design: rahmenlose Fenster, runde Knöpfe, Schalter statt Häkchen|Scharfe Schrift bei Windows-Skalierung 125 %/150 %|Abrufe im Hintergrund – Fenster frieren nicht mehr ein|Ticker an jeder freien Stelle verschiebbar|Eigenes Programm-Icon und Versionsinfo"},

@@ -381,11 +381,15 @@ func schedBuild() {
 		schedStatus = fmt.Sprintf("%d Ergebnisse der letzten 7 Tage", n)
 	case 2:
 		schedStatus = "„" + favTerms + "“: kommende Spiele und letzte Ergebnisse"
+	case 3:
+		schedStatus = fmt.Sprintf("%d Ligen · Klick zeigt die Tabelle", n)
 	}
 	if !schedLoaded {
 		schedStatus = "Lade Spielplan aller Ligen …"
 	}
-	schedStatus += " · Doppelklick = Steckbrief"
+	if schedTab != 3 {
+		schedStatus += " · Doppelklick = Steckbrief"
+	}
 	p.contentH = len(schedList) * sRowH
 	if p.scroll > p.contentH-p.viewH {
 		p.scroll = 0
@@ -393,7 +397,7 @@ func schedBuild() {
 	invalidate(p.hwnd)
 }
 
-var schedTabs = []string{"Nächste", "Ergebnisse", "Meine Spiele"}
+var schedTabs = []string{"Nächste", "Ergebnisse", "Meine Spiele", "Tabellen"}
 
 func paintSched(c *canvas, p *panel, w, h int) {
 	for i, t := range schedTabs {
@@ -418,6 +422,22 @@ func paintSched(c *canvas, p *panel, w, h int) {
 		case 2:
 			c.round(12, y+2, w-24, sRowH-4, 6, cRed)
 			c.line(24, y, w-48, sRowH, r.text, ui(8.5, true), cWhite, DT_LEFT)
+			continue
+		case 3:
+			bg := uint32(cWhite)
+			switch {
+			case r.fav:
+				bg = cFav
+			case p.hover == "lig"+strconv.Itoa(i):
+				bg = cHover
+			}
+			c.round(12, y+2, w-24, sRowH-4, 6, bg)
+			name := r.text
+			if r.fav {
+				name = "★ " + name
+			}
+			c.line(24, y, w-330, sRowH, name, ui(9, r.fav), cDark, DT_LEFT)
+			c.line(w-320, y, 290, sRowH, r.sub, ui(8, false), cGreyTxt, DT_RIGHT)
 			continue
 		}
 		g := r.g
@@ -477,6 +497,9 @@ func schedHit(p *panel, x, y int) string {
 		if i < len(schedList) && schedList[i].kind == 0 {
 			return "row" + strconv.Itoa(i)
 		}
+		if i < len(schedList) && schedList[i].kind == 3 {
+			return "lig" + strconv.Itoa(i)
+		}
 	}
 	return ""
 }
@@ -490,6 +513,10 @@ func schedClick(p *panel, hv string, dbl bool) {
 	case hv == "reload":
 		schedStatus = "Lade Spielplan aller Ligen …"
 		startWork(false, true)
+	case strings.HasPrefix(hv, "lig"):
+		if i, err := strconv.Atoi(hv[3:]); err == nil && i < len(schedList) {
+			tableOpen(schedList[i].div, schedList[i].text)
+		}
 	case strings.HasPrefix(hv, "row"):
 		schedSel, _ = strconv.Atoi(hv[3:])
 		if dbl {

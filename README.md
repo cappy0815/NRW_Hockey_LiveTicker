@@ -5,8 +5,8 @@ Live-Ticker für laufende Spiele im Eishockeyverband NRW – als Windows-Program
 | | Windows | Android |
 |---|---|---|
 | Name | EHV-NRW Live-Ticker | EHV Live |
-| Version | 3.1 | 2.71 |
-| Download | [EXE v3.1](https://cappy0815.github.io/downloads/EHV_NRW_LiveTicker_v3.1.exe) | [APK v2.71](https://cappy0815.github.io/downloads/EHV-Live-v2.71.apk) |
+| Version | 3.2 | 2.71 |
+| Download | [EXE v3.2](https://cappy0815.github.io/downloads/EHV_NRW_LiveTicker_v3.2.exe) | [APK v2.71](https://cappy0815.github.io/downloads/EHV-Live-v2.71.apk) |
 
 ![Ticker-Fenster der Windows-Version](screenshot-windows.png)
 
@@ -18,7 +18,7 @@ Live-Ticker für laufende Spiele im Eishockeyverband NRW – als Windows-Program
 - Steckbrief mit Halle, Route und Kalendereintrag, Ligatabelle, Aufstellung beider Teams
 - Sparsam: abgefragt werden nur Ligen, die heute spielen; der Spielplan wird höchstens alle 30 Minuten geladen
 
-**Windows:** rahmenlose, verschiebbare Ticker-Fenster (bis zu 8), Töne für Tor, Strafe, Drittelende, Spielende und Bully, Schiedsrichter-Einteilung (HSR und (L)SR) aus esrw.de unter dem Stand.  
+**Windows:** rahmenlose, verschiebbare Ticker-Fenster (bis zu 8), Töne für Tor, Strafe, Drittelende, Spielende und Bully, Schiedsrichter-Einteilung (HSR und (L)SR) aus esrw.de unter dem Stand, Spielplan mit Reiter „Tabellen“ (alle Ligen nach Altersklasse).  
 **Android:** Reiter Live · Spielplan · Meine · Tabellen (wischen zum Wechseln), schwebendes Floating-Display über anderen Apps, Benachrichtigung mit Stand, Vibration, Display-Wecker über dem Sperrbildschirm, Schiedsrichter-Einteilung im Ticker (aus esrw.de), Update-Prüfung (einmal am Tag, abschaltbar; installiert wird nichts automatisch).
 
 ## Installation
@@ -39,7 +39,7 @@ Prüfsummen (SHA-256) stehen auf [cappy0815.github.io](https://cappy0815.github.
 Go ab 1.24 und Python 3. Im Ordner `windows/`:
 
 ```
-python3 mkres.py 3.1.0.0 ehv_ticker.ico
+python3 mkres.py 3.2.0.0 ehv_ticker.ico
 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags "-H windowsgui" -o EHV_NRW_LiveTicker.exe .
 ```
 

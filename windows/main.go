@@ -16,7 +16,7 @@ import (
 	"unsafe"
 )
 
-const appVersion = "3.1"
+const appVersion = "3.2"
 
 const disclaimer = "Inoffizielles, privates Tool – es besteht keine Verbindung zum Eishockeyverband NRW (EHV NRW) oder zu hockeydata.net.\r\n\r\n" +
 	"Angezeigt werden ausschließlich öffentlich zugängliche Daten, wie sie auch auf ehv-nrw.de und esrw.de zu sehen sind.\r\n\r\n" +

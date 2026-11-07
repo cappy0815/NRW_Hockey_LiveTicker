@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -111,9 +112,15 @@ type srow struct {
 	kind int
 	g    *sgame
 	text string
+	div  string // kind 3: Liga (Division-ID)
+	sub  string // kind 3: "x von y Spielen gespielt"
+	fav  bool   // kind 3: Liga mit hervorgehobenem Team
 }
 
 func schedRows(all []sgame, tab int, fav func(string) bool) ([]srow, int) {
+	if tab == 3 {
+		return leagueRows(all, fav)
+	}
 	today := dayKey(0)
 	seen := map[string]bool{}
 	var pick []*sgame
@@ -190,6 +197,144 @@ func schedRows(all []sgame, tab int, fav func(string) bool) ([]srow, int) {
 		rows = append(rows, srow{kind: 0, g: g})
 	}
 	return rows, len(pick)
+}
+
+// ---------------------------------------------------------------- Tabellen-Uebersicht (wie Android 2.7)
+// Alle Ligen aus dem Saisonplan, nach Altersklasse gruppiert; Ligen meiner Teams oben.
+// Keine zusaetzlichen Abfragen: die Liste entsteht aus dem ohnehin geladenen Spielplan.
+var (
+	reSeasonAny = regexp.MustCompile(`\s*\d{2,4}/\d{2,4}`)
+	reU         = regexp.MustCompile(`^(U\d+)`)
+	reUExact    = regexp.MustCompile(`^U(\d+)$`)
+)
+
+// "NRW - U15 Regionalliga A" -> "U15", "NRW - Senioren" -> "Senioren"
+func ligaGroup(league string) string {
+	l := strings.TrimSpace(reNRW.ReplaceAllString(league, ""))
+	if m := reU.FindString(l); m != "" {
+		return m
+	}
+	if l == "" {
+		return "Sonstige"
+	}
+	return l
+}
+
+// Titel ohne Altersklasse und Saison: "Regionalliga A · Hauptrunde"
+func ligaTitle(league, div, gr string) string {
+	l := strings.TrimSpace(reNRW.ReplaceAllString(league, ""))
+	l = strings.TrimSpace(strings.TrimPrefix(l, gr))
+	d := strings.TrimSpace(reSeasonAny.ReplaceAllString(div, ""))
+	if l == "" {
+		if d == "" {
+			return gr
+		}
+		return d
+	}
+	if d == "" || strings.HasPrefix(d, l) {
+		return d
+	}
+	return l + " · " + d
+}
+
+// Reihenfolge der Altersklassen: Senioren, Frauen, U20 ... U7, dann Freundschaft/Sonstige
+func ligaGroupRank(gr string) int {
+	if strings.EqualFold(gr, "Senioren") {
+		return 0
+	}
+	if strings.EqualFold(gr, "Frauen") || strings.EqualFold(gr, "Damen") {
+		return 1
+	}
+	if m := reUExact.FindStringSubmatch(gr); m != nil {
+		n, _ := strconv.Atoi(m[1])
+		return 100 - n
+	}
+	if strings.Contains(strings.ToLower(gr), "freundschaft") {
+		return 300
+	}
+	return 200
+}
+
+// Spielklasse: Regionalliga/DEL, Landesliga, Bezirksliga, Rest
+func ligaLevelRank(title string) int {
+	t := strings.ToLower(title)
+	switch {
+	case strings.Contains(t, "dfel"), strings.Contains(t, "regionalliga"):
+		return 0
+	case strings.Contains(t, "landesliga"):
+		return 1
+	case strings.Contains(t, "bezirksliga"):
+		return 2
+	}
+	return 3
+}
+
+type ligaInfo struct {
+	div, group, title string
+	games, done, rank int
+	fav               bool
+}
+
+func leagueRows(all []sgame, fav func(string) bool) ([]srow, int) {
+	m := map[string]*ligaInfo{}
+	var order []string
+	seen := map[string]bool{}
+	for i := range all {
+		g := &all[i]
+		if g.div == "" || g.id == "" || seen[g.id] {
+			continue
+		}
+		seen[g.id] = true
+		li := m[g.div]
+		if li == nil {
+			gr := ligaGroup(g.league)
+			li = &ligaInfo{div: g.div, group: gr, title: ligaTitle(g.league, g.divName, gr)}
+			li.rank = ligaGroupRank(gr)*10 + ligaLevelRank(li.title)
+			m[g.div] = li
+			order = append(order, g.div)
+		}
+		li.games++
+		if g.status == 4 {
+			li.done++
+		}
+		if fav(g.home + "|" + g.away) {
+			li.fav = true
+		}
+	}
+	list := make([]*ligaInfo, 0, len(order))
+	for _, d := range order {
+		list = append(list, m[d])
+	}
+	sort.SliceStable(list, func(a, b int) bool {
+		if list[a].rank != list[b].rank {
+			return list[a].rank < list[b].rank
+		}
+		return strings.ToLower(list[a].title) < strings.ToLower(list[b].title)
+	})
+	rowOf := func(li *ligaInfo) srow {
+		return srow{kind: 3, div: li.div, text: li.group + " · " + li.title,
+			sub: fmt.Sprintf("%d von %d Spielen gespielt", li.done, li.games), fav: li.fav}
+	}
+	var rows []srow
+	var nFav int
+	for _, li := range list {
+		if li.fav {
+			if nFav == 0 {
+				rows = append(rows, srow{kind: 2, text: "LIGEN MEINER TEAMS"})
+			}
+			nFav++
+			rows = append(rows, rowOf(li))
+		}
+	}
+	last := ""
+	for _, li := range list {
+		if li.group != last {
+			rows = append(rows, srow{kind: 1, text: li.group})
+			last = li.group
+		}
+		rows = append(rows, rowOf(li))
+	}
+	return rows, len(list)
 }
 
 // ---------------------------------------------------------------- Tabelle (Abfrage "Standings")
