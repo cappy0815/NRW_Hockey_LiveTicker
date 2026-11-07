@@ -689,6 +689,7 @@ public class MainActivity extends Activity {
 
     // ------------------------------------------------------------------ Changelog
     private static final String[][] CHANGELOG = {
+            {"2.92", "Scorer/Torhüter/Strafen: Name zweizeilig mit Trikotnummer und Team, kein seitliches Schieben mehr – Wischen wechselt wieder sauber die Seite"},
             {"2.91", "Topscorer-Stern: Top 3 der aufgestellten Spieler (vorher des ganzen Kaders), Stern größer\n"
                     + "Aufstellung und Statistik seitlich scrollbar, Namen vollständig"},
             {"2.9", "Tabelle mit wischbaren Seiten Scorer · Torhüter · Strafen der ganzen Liga\n"

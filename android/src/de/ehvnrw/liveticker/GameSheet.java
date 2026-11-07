@@ -483,16 +483,9 @@ final class GameSheet {
         box.addView(state);
         final TableLayout table = new TableLayout(a);
         table.setColumnStretchable(1, true);
-        if (page == 0) {
-            table.setColumnShrinkable(1, true);
-            box.addView(table, new LinearLayout.LayoutParams(-1, -2));
-        } else { // v2.91: Statistik seitlich scrollbar, Namen vollständig
-            android.widget.HorizontalScrollView hs = new android.widget.HorizontalScrollView(a);
-            hs.setFillViewport(true);
-            hs.setTag("hscroll");
-            hs.addView(table, new android.widget.FrameLayout.LayoutParams(-2, -2));
-            box.addView(hs, new LinearLayout.LayoutParams(-1, -2));
-        }
+        // v2.92: kein seitliches Schieben mehr (rutschte zu leicht in die nächste Seite) – Namen stattdessen zweizeilig
+        table.setColumnShrinkable(1, true);
+        box.addView(table, new LinearLayout.LayoutParams(-1, -2));
         final String[] types = {null, "FieldPlayers", "Goalkeepers", "BadBoys"};
         final Handler ui = new Handler(Looper.getMainLooper());
         new Thread(new Runnable() {
@@ -527,7 +520,7 @@ final class GameSheet {
                                 : page == 1 ? "Sp = Spiele · T = Tore · A = Assists · P = Punkte · SM = Strafminuten · Top 50 der Liga"
                                 : page == 2 ? "Sp = Spiele · GT = Gegentore · Ø = Gegentore je Spiel · Sv% = Fangquote (nur, wo Schüsse erfasst sind)"
                                 : "Sp = Spiele · SM = Strafminuten · 2′ / 5′ = kleine / große Strafen · D = Disziplinar- und Matchstrafen · Top 50";
-                        TextView note = text(a, n + (page == 0 ? "" : "\nQuelle: Liga-Statistik ehv-nrw.de · Liste seitlich schieben, am Rand wischen = nächste Seite"), 11, C_MUTED, false);
+                        TextView note = text(a, n + (page == 0 ? "" : "\nQuelle: Liga-Statistik ehv-nrw.de · wischen = nächste Seite"), 11, C_MUTED, false);
                         note.setPadding(0, dp(a, 8), 0, 0);
                         box.addView(note);
                     }
@@ -562,7 +555,8 @@ final class GameSheet {
             String longName = teamNames.get(teamId);
             boolean fav = longName != null && Prefs.isFavName(a, longName);
             String name = r.optString("playerLastname", "") + " " + r.optString("playerFirstname", "").trim();
-            String who = name.trim() + " · " + r.optString("teamShortname", "");
+            String nr = r.optString("playerJerseyNr", "").trim();
+            String who = name.trim() + "\n" + (nr.isEmpty() || nr.equals("0") ? "" : "#" + nr + " · ") + r.optString("teamShortname", "");
             String logo = Api.logoUrl(teamId);
             String rank = String.valueOf(i + 1);
             if (page == 1) {
@@ -595,9 +589,22 @@ final class GameSheet {
             TextView t = text(a, cells[i], 13, head ? C_MUTED : C_TEXT, head || i == cells.length - 1 || fav);
             t.setPadding(dp(a, 4), 0, dp(a, 4), 0);
             if (i == 1) {
-                t.setSingleLine(true);
-                if (!full) t.setEllipsize(TextUtils.TruncateAt.END);
-                else t.setPadding(dp(a, 4), 0, dp(a, 10), 0);
+                if (!full) {
+                    t.setSingleLine(true);
+                    t.setEllipsize(TextUtils.TruncateAt.END);
+                } else { // v2.92: Zeile 1 Name komplett (darf umbrechen), Zeile 2 klein „#88 · ESS“
+                    t.setSingleLine(false);
+                    t.setMaxLines(3);
+                    String c = cells[i];
+                    int nl = c.indexOf('\n');
+                    if (nl > 0) {
+                        android.text.SpannableString sp = new android.text.SpannableString(c);
+                        sp.setSpan(new android.text.style.RelativeSizeSpan(0.85f), nl + 1, c.length(), 0);
+                        sp.setSpan(new android.text.style.ForegroundColorSpan(C_MUTED), nl + 1, c.length(), 0);
+                        sp.setSpan(new android.text.style.StyleSpan(Typeface.NORMAL), nl + 1, c.length(), 0);
+                        t.setText(sp);
+                    }
+                }
                 if (!head) { // kleines Wappen vor dem Teamnamen
                     LinearLayout cell = new LinearLayout(a);
                     cell.setGravity(Gravity.CENTER_VERTICAL);
