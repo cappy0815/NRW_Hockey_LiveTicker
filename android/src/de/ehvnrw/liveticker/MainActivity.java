@@ -148,7 +148,9 @@ public class MainActivity extends Activity {
             public boolean onItemLongClick(AdapterView<?> p, View v, int pos, long id) {
                 Game g = games.get(pos);
                 if (g.type == 2) return false;
-                LineupSheet.show(MainActivity.this, g);
+                // v2.93: vorgemerktes Spiel -> Display-Wecker je Spiel einstellen (Floating gibt es noch nicht)
+                if (OverlayService.isPending(g.id)) wakeDialog(g, true);
+                else LineupSheet.show(MainActivity.this, g);
                 return true;
             }
         });
@@ -535,7 +537,7 @@ public class MainActivity extends Activity {
         item(box, "\uD83D\uDFE8", "Gelb hinterlegt: hervorgehobene Spiele (Standard: Neuss)");
         item(box, "\uD83D\uDD52", "„Heute noch“: anstehende Spiele, blass dargestellt");
         item(box, "\u23F0", "Antippen merkt das Spiel vor – das Floating erscheint bei Spielbeginn (nochmal antippen = aufheben). In den Optionen alternativ: sofort, blass bis zum Bully");
-        item(box, "\uD83D\uDCCB", "Lange drücken: Aufstellung beider Teams (sobald eingetragen) – auch per Knopf im Detailfenster");
+        item(box, "\uD83D\uDCCB", "Lange drücken: Aufstellung beider Teams (sobald eingetragen) – auch per Knopf im Detailfenster; bei vorgemerkten Spielen erst der Display-Wecker-Schalter, dort Knopf „Aufstellung“");
         item(box, "\u23F2", "Aktualisiert sich automatisch, solange die App offen ist");
 
         section(box, "Reiter unten");
@@ -596,6 +598,7 @@ public class MainActivity extends Activity {
         item(box, "\uD83D\uDC46", "Tippen schließt die Meldung sofort. Gilt für Spiele mit Floating oder Vormerkung");
         item(box, "\uD83D\uDD14", "Optional dezenter Ton – läuft wie eine Navi-Ansage auch über Bluetooth im Auto");
         item(box, "\uD83D\uDD14", "Je Spiel an/aus (Floating lange drücken) – auch wenn der Standard aus ist; 🔔 in der Infozeile = aktiv");
+        item(box, "\u23F0", "Schon vor dem Spiel: beim Vormerken fragt die App nach dem Display-Wecker; später ändern = vorgemerktes Spiel in der Liste lange drücken");
 
         section(box, "Updates");
         item(box, "\u2B06", "Die App prüft höchstens einmal am Tag, ob es eine neue Version gibt (in den Optionen abschaltbar). "
@@ -689,6 +692,8 @@ public class MainActivity extends Activity {
 
     // ------------------------------------------------------------------ Changelog
     private static final String[][] CHANGELOG = {
+            {"2.93", "Display-Wecker schon beim Vormerken je Spiel einstellbar (Abfrage beim Vormerken, "
+                    + "vorgemerktes Spiel lange drücken), 🔔 in der Liste"},
             {"2.92", "Scorer/Torhüter/Strafen: Name zweizeilig mit Trikotnummer und Team, kein seitliches Schieben mehr – Wischen wechselt wieder sauber die Seite"},
             {"2.91", "Topscorer-Stern: Top 3 der aufgestellten Spieler (vorher des ganzen Kaders), Stern größer\n"
                     + "Aufstellung und Statistik seitlich scrollbar, Namen vollständig"},
@@ -957,6 +962,43 @@ public class MainActivity extends Activity {
         return row;
     }
 
+    /**
+     * v2.93: Display-Wecker für ein vorgemerktes Spiel (vorher nur im Detailfenster des Floatings – das gibt es vor dem Bully nicht).
+     * Gespeichert je Spiel-ID (Prefs.setWakeForGame), gilt dann ab „Bully!“ für alle Meldungen dieses Spiels.
+     * fromList = langes Drücken in der Liste: zusätzlich Knopf „Aufstellung“.
+     */
+    private void wakeDialog(final Game g, boolean fromList) {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(20), dp(16), dp(20), dp(4));
+        box.addView(text(g.homeShort + " – " + g.awayShort, 17, C_TEXT, true));
+        box.addView(text("\u23F0 vorgemerkt · " + g.phaseText(), 12, C_MUTED, false));
+        final Switch sw = toggle("Display-Wecker für dieses Spiel", Prefs.wakeForGame(this, g.id));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+        lp.topMargin = dp(10);
+        box.addView(sw, lp);
+        box.addView(text("Ab „Bully!“ erscheinen Tor, Strafe, Drittel- und Spielende groß über dem Sperrbildschirm. "
+                + "Später änderbar: Spiel in der Liste lange drücken oder – nach dem Bully – Floating lange drücken.", 12, C_MUTED, false));
+        android.app.AlertDialog.Builder b = new android.app.AlertDialog.Builder(this)
+                .setView(box)
+                .setPositiveButton("OK", new android.content.DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(android.content.DialogInterface d, int w) {
+                        Prefs.setWakeForGame(MainActivity.this, g.id, sw.isChecked());
+                        adapter.notifyDataSetChanged();
+                    }
+                });
+        if (fromList) b.setNeutralButton("Aufstellung", new android.content.DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(android.content.DialogInterface d, int w) {
+                Prefs.setWakeForGame(MainActivity.this, g.id, sw.isChecked());
+                adapter.notifyDataSetChanged();
+                LineupSheet.show(MainActivity.this, g);
+            }
+        });
+        Ui.dialog(b.show());
+    }
+
     private Switch toggle(String label, boolean on) {
         Switch sw = new Switch(this);
         sw.setText(label);
@@ -1141,6 +1183,7 @@ public class MainActivity extends Activity {
             Toast.makeText(this, remind
                     ? "\u23F0 Vorgemerkt – das Floating erscheint bei Spielbeginn"
                     : g.homeShort + " – " + g.awayShort + " schwebt jetzt auf dem Bildschirm", Toast.LENGTH_SHORT).show();
+            if (remind) wakeDialog(g, false); // v2.93: Display-Wecker gleich beim Vormerken festlegen
             if (!remind && Prefs.minimizeOnPin(this)) { // beim Vormerken offen lassen
                 ui.postDelayed(new Runnable() {
                     @Override
@@ -1280,7 +1323,7 @@ public class MainActivity extends Activity {
             String ph = g.phaseText() + (g.type == 1 && !g.arenaShort.isEmpty() ? " · \uD83D\uDCCD " + g.arenaShort : "")
                     + GameSheet.streamTag(MainActivity.this, g);
             info.setText(pinned ? "\uD83D\uDCCC angepinnt · " + ph
-                    : pend ? "\u23F0 vorgemerkt · " + ph : ph);
+                    : pend ? "\u23F0 vorgemerkt" + (Prefs.wakeForGame(MainActivity.this, g.id) ? " \uD83D\uDD14" : "") + " · " + ph : ph);
             info.setTextColor(pend ? Color.rgb(200, 110, 0) : Color.rgb(0, 110, 190));
             home.setTeam(g.homeShort, null);
             away.setTeam(g.awayShort, null);
