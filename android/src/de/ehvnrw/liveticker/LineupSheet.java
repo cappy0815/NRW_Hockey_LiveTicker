@@ -21,10 +21,10 @@ import java.util.Locale;
  * Inhalt unveraendert aus MainActivity 2.4 uebernommen.
  */
 final class LineupSheet {
-    private static final int C_TEXT = Color.rgb(34, 38, 43);
-    private static final int C_MUTED = Color.rgb(110, 116, 124);
-    private static final int C_ACCENT = Color.rgb(200, 16, 46);   // Rot aus dem EHV-Logo
-    private static final int C_GREEN = Color.rgb(0, 140, 69);     // Gruen aus dem EHV-Logo
+    private static final int C_TEXT = Ui.TEXT;
+    private static final int C_MUTED = Ui.MUTED;
+    private static final int C_ACCENT = Ui.RED;
+    private static final int C_GREEN = Ui.GREEN;
     private static final int THEME = android.R.style.Theme_Material_Light_Dialog_Alert;
     private static final java.util.concurrent.ExecutorService POOL = java.util.concurrent.Executors.newFixedThreadPool(2);
     private static final Handler UI = new Handler(Looper.getMainLooper());
@@ -46,13 +46,7 @@ final class LineupSheet {
         final TextView title = text(a, g.homeShort + "   " + (g.type == 1 ? "–" : g.score()) + "   " + g.awayShort, 20, C_TEXT, true);
         title.setGravity(Gravity.CENTER);
         box.addView(title, new LinearLayout.LayoutParams(-1, -2));
-        LinearLayout stripe = new LinearLayout(a);
-        stripe.addView(colorBlock(a, C_GREEN), new LinearLayout.LayoutParams(0, -1, 1f));
-        stripe.addView(colorBlock(a, Color.rgb(225, 228, 232)), new LinearLayout.LayoutParams(0, -1, 1f));
-        stripe.addView(colorBlock(a, C_ACCENT), new LinearLayout.LayoutParams(0, -1, 1f));
-        LinearLayout.LayoutParams stLp = new LinearLayout.LayoutParams(-1, dp(a, 3));
-        stLp.topMargin = dp(a, 10);
-        box.addView(stripe, stLp);
+        Ui.stripe(a, box, 10);
 
         final LinearLayout content = new LinearLayout(a);
         content.setOrientation(LinearLayout.VERTICAL);
@@ -237,28 +231,14 @@ final class LineupSheet {
 
 
     private static int dp(Activity a, float v) {
-        return Math.round(v * a.getResources().getDisplayMetrics().density);
+        return Ui.dp(a, v);
     }
 
     private static TextView text(Activity a, String s, float sp, int color, boolean bold) {
-        TextView t = new TextView(a);
-        t.setText(s);
-        t.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp);
-        t.setTextColor(color);
-        if (bold) t.setTypeface(Typeface.DEFAULT_BOLD);
-        return t;
-    }
-
-    private static View colorBlock(Activity a, int color) {
-        View v = new View(a);
-        v.setBackgroundColor(color);
-        return v;
+        return Ui.text(a, s, sp, color, bold);
     }
 
     private static void section(Activity a, LinearLayout box, String title) {
-        TextView h = text(a, title.toUpperCase(Locale.GERMANY), 11, C_ACCENT, true);
-        h.setLetterSpacing(0.08f);
-        h.setPadding(0, dp(a, 14), 0, dp(a, 4));
-        box.addView(h);
+        Ui.section(a, box, title);
     }
 }

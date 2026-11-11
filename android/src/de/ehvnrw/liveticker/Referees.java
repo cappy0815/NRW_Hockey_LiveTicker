@@ -129,18 +129,32 @@ final class Referees {
         return (spgB && y.contains(x)) || (spgA && x.contains(y));
     }
 
-    /** gleicher Tag + beide Teams, oder gleicher Tag + gleiche Uhrzeit + ein Team */
+    /**
+     * gleicher Tag + beide Teams + gleiche Uhrzeit, oder gleicher Tag + gleiche Uhrzeit + ein Team.
+     * v2.95: Uhrzeit auch beim Vollvergleich – sonst bekam bei zwei Spielen derselben Teams am selben Tag
+     * (z. B. Dortmund – Dinslaken 13:30 U13 und 19:00 U20) das zweite Spiel die Schiris des ersten.
+     * Fehlt eine Uhrzeit (Spiel oder esrw.de), reichen Tag + beide Teams – aber nur, wenn es genau eine solche Zeile gibt.
+     */
     private static Row match(Game g) {
         String date = g.dateText;
         if (date == null || date.isEmpty())
             date = new java.text.SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY).format(new java.util.Date());
-        Row half = null;
+        String time = g.scheduledTime == null ? "" : g.scheduledTime.trim();
+        if (!time.matches("\\d{1,2}:\\d{2}")) time = ""; // z. B. „n.n.“ = Zeit noch offen
+        Row half = null, noTime = null;
+        int noTimeCount = 0;
         for (Row r : rows) {
             if (!r.date.equals(date)) continue;
             boolean h = same(r.home, g.homeName), a = same(r.away, g.awayName);
-            if (h && a) return r;
-            if ((h || a) && r.time.equals(g.scheduledTime) && half == null) half = r;
+            boolean sameTime = !time.isEmpty() && r.time.trim().equals(time);
+            if (h && a && sameTime) return r;
+            if (h && a && (time.isEmpty() || r.time.trim().isEmpty())) {
+                noTimeCount++;
+                if (noTime == null) noTime = r;
+            }
+            if ((h || a) && sameTime && half == null) half = r;
         }
+        if (noTimeCount == 1) return noTime;
         return half;
     }
 }

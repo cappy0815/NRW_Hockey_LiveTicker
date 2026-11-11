@@ -177,15 +177,12 @@ public class WakeActivity extends Activity {
     }
 
     private TextView text(float sp, int color, boolean bold) {
-        TextView t = new TextView(this);
-        t.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp);
-        t.setTextColor(color);
+        TextView t = Ui.text(this, "", sp, color, bold);
         t.setGravity(Gravity.CENTER);
-        if (bold) t.setTypeface(Typeface.DEFAULT_BOLD);
         return t;
     }
 
     private int dp(int v) {
-        return Math.round(v * getResources().getDisplayMetrics().density);
+        return Ui.dp(this, v);
     }
 }

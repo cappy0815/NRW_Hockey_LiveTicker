@@ -32,8 +32,8 @@ import java.util.regex.Pattern;
  */
 class TablesPane extends LinearLayout {
 
-    private static final int C_TEXT = Color.rgb(34, 38, 43);
-    private static final int C_MUTED = Color.rgb(110, 116, 124);
+    private static final int C_TEXT = Ui.TEXT;
+    private static final int C_MUTED = Ui.MUTED;
 
     /** eine Liga (Division) */
     private static class Div {
@@ -211,7 +211,7 @@ class TablesPane extends LinearLayout {
     }
 
     private int dp(int v) {
-        return Math.round(v * a.getResources().getDisplayMetrics().density);
+        return Ui.dp(a, v);
     }
 
     private class Adapter extends BaseAdapter {
@@ -266,7 +266,7 @@ class TablesPane extends LinearLayout {
             LinearLayout r = cv instanceof LinearLayout ? (LinearLayout) cv : row();
             ((TextView) r.getChildAt(0)).setText((d.fav ? "★ " : "") + d.group + " · " + d.title);
             ((TextView) r.getChildAt(1)).setText(d.sub);
-            r.setBackgroundColor(d.fav ? Color.rgb(255, 246, 214) : Color.TRANSPARENT);
+            r.setBackgroundColor(d.fav ? Ui.FAV : Color.TRANSPARENT);
             return r;
         }
 

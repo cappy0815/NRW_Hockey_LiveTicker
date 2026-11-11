@@ -115,22 +115,27 @@ public class MainActivity extends Activity {
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
         bar.setPadding(0, dp(6), 0, dp(6));
+        status = new TextView(this);
+        status.setPadding(dp(4), 0, dp(8), 0);
+        status.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        status.setMaxLines(2);
+        status.setTextColor(Color.DKGRAY);
+        bar.addView(status, new LinearLayout.LayoutParams(0, -2, 1f));
+        // v2.95: ↻ wie in Spielplan/Meine/Tabellen (vorher großer Knopf „Aktualisieren“)
         refreshBtn = new Button(this);
-        refreshBtn.setText("\u21BB  Aktualisieren");
-        Ui.pill(refreshBtn, Ui.GREEN);
+        refreshBtn.setText("\u21BB");
+        Ui.outline(refreshBtn, Ui.DARK);
+        refreshBtn.setMinWidth(0);
+        refreshBtn.setMinimumWidth(0);
+        refreshBtn.setPadding(dp(14), dp(4), dp(14), dp(4));
+        refreshBtn.setContentDescription("Aktualisieren");
         refreshBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 refresh(false); // v2.5: Live-Stände immer frisch, Saisonplan aus dem 30-Min.-Speicher
             }
         });
-        bar.addView(refreshBtn);
-        status = new TextView(this);
-        status.setPadding(dp(10), 0, 0, 0);
-        status.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        status.setMaxLines(2);
-        status.setTextColor(Color.DKGRAY);
-        bar.addView(status, new LinearLayout.LayoutParams(0, -2, 1f));
+        bar.addView(refreshBtn, new LinearLayout.LayoutParams(-2, -2));
         root.addView(bar);
 
         ListView list = new ListView(this);
@@ -148,9 +153,13 @@ public class MainActivity extends Activity {
             public boolean onItemLongClick(AdapterView<?> p, View v, int pos, long id) {
                 Game g = games.get(pos);
                 if (g.type == 2) return false;
-                // v2.93: vorgemerktes Spiel -> Display-Wecker je Spiel einstellen (Floating gibt es noch nicht)
-                if (OverlayService.isPending(g.id)) wakeDialog(g, true);
-                else LineupSheet.show(MainActivity.this, g);
+                // v2.95: lange drücken = Steckbrief (wie Antippen im Spielplan); dort Aufstellung und – bei Vormerkung – Wecker
+                GameSheet.show(MainActivity.this, g, new Runnable() {
+                    @Override
+                    public void run() {
+                        adapter.notifyDataSetChanged(); // 🔔 in der Zeile nachziehen
+                    }
+                });
                 return true;
             }
         });
@@ -356,76 +365,6 @@ public class MainActivity extends Activity {
                 .show());
     }
 
-    /** Abschnitt „Updates“ in den Optionen: Status, täglich prüfen, Jetzt prüfen / Herunterladen */
-    private void updateSection(LinearLayout box, final Switch[] autoOut) {
-        section(box, "Updates");
-        final TextView st = text("", 13, C_TEXT, false);
-        box.addView(st);
-        final Switch swAuto = toggle("Täglich automatisch prüfen (es wird nichts automatisch installiert)", Update.auto(this));
-        box.addView(swAuto);
-        autoOut[0] = swAuto;
-        LinearLayout row = new LinearLayout(this);
-        row.setGravity(Gravity.CENTER_HORIZONTAL);
-        final android.widget.Button chk = new android.widget.Button(this);
-        chk.setText("Jetzt prüfen");
-        Ui.pill(chk, Ui.DARK);
-        final android.widget.Button dl = new android.widget.Button(this);
-        dl.setText("\u2B06 Download");
-        Ui.pill(dl, Ui.GREEN);
-        // v2.82: beide Knöpfe gleich breit, einzeilig (vorher „Herunterlade-n“ umgebrochen)
-        for (android.widget.Button b : new android.widget.Button[]{chk, dl}) {
-            b.setSingleLine(true);
-            b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-            b.setPadding(dp(8), dp(10), dp(8), dp(10));
-            b.setMinWidth(0);
-            b.setMinimumWidth(0);
-        }
-        final Runnable show = new Runnable() {
-            @Override
-            public void run() {
-                boolean avail = Update.available(MainActivity.this);
-                String l = Update.latest(MainActivity.this);
-                st.setText((Update.isBusy() ? "Prüfe …" : avail ? "Version " + l + " ist verfügbar"
-                        : l.isEmpty() ? "Noch nicht geprüft" : "Aktuell (neueste Version " + l + ")")
-                        + "\nInstalliert: " + Update.installed(MainActivity.this) + " · zuletzt geprüft: " + Update.lastText(MainActivity.this));
-                st.setTextColor(avail ? C_GREEN : C_MUTED);
-                dl.setVisibility(avail ? View.VISIBLE : View.GONE);
-                chk.setEnabled(!Update.isBusy());
-                invalidateOptionsMenu();
-            }
-        };
-        chk.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Update.check(MainActivity.this, new Update.Done() {
-                    @Override
-                    public void done(boolean ok) {
-                        show.run();
-                        if (!ok) {
-                            st.setText("Update-Server nicht erreichbar – Internet prüfen");
-                            st.setTextColor(C_ACCENT);
-                        }
-                    }
-                });
-                show.run();
-            }
-        });
-        dl.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Update.openDownload(MainActivity.this);
-            }
-        });
-        row.addView(chk, new LinearLayout.LayoutParams(0, -2, 1f));
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1f);
-        lp.leftMargin = dp(8);
-        row.addView(dl, lp);
-        LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, -2);
-        rlp.topMargin = dp(4);
-        box.addView(row, rlp);
-        show.run();
-    }
-
     @Override
     protected void onResume() {
         super.onResume();
@@ -486,11 +425,11 @@ public class MainActivity extends Activity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == 1) {
-            showHelp();
+            HelpDialog.show(this, appVersion());
             return true;
         }
         if (item.getItemId() == 3) {
-            showOptions();
+            OptionsDialog.show(this);
             return true;
         }
         if (item.getItemId() == 5) {
@@ -500,506 +439,33 @@ public class MainActivity extends Activity {
         return super.onOptionsItemSelected(item);
     }
 
-    // ------------------------------------------------------------------ Hilfe-Fenster
-    private static final int C_TEXT = Color.rgb(34, 38, 43);
-    private static final int C_MUTED = Color.rgb(110, 116, 124);
-    private static final int C_ACCENT = Color.rgb(200, 16, 46);   // Rot aus dem EHV-Logo
-    private static final int C_GREEN = Color.rgb(0, 140, 69);     // Gruen aus dem EHV-Logo
+    // ------------------------------------------------------------------ Optionen, Hilfe (v2.95: eigene Klassen)
+    private static final int C_MUTED = Ui.MUTED;
+    private static final int C_GREEN = Ui.GREEN;
 
-    private void showHelp() {
-        final ScrollView sv = new ScrollView(this);
-        sv.setVerticalFadingEdgeEnabled(true);
-        sv.setFadingEdgeLength(dp(48));
-        sv.setScrollbarFadingEnabled(false); // Scrollbalken immer sichtbar
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(dp(20), dp(18), dp(20), dp(6));
-        sv.addView(box);
-
-        // Kopf: Logo, Titel, Versions-Chip
-        LinearLayout head = new LinearLayout(this);
-        head.setGravity(Gravity.CENTER_VERTICAL);
-        ImageView logo = new ImageView(this);
-        logo.setImageResource(R.mipmap.ic_launcher);
-        head.addView(logo, new LinearLayout.LayoutParams(dp(44), dp(44)));
-        LinearLayout titles = new LinearLayout(this);
-        titles.setOrientation(LinearLayout.VERTICAL);
-        titles.setPadding(dp(12), 0, 0, 0);
-        titles.addView(text("EHV Live", 18, C_TEXT, true));
-        titles.addView(text("Live-Ticker für den EHV NRW", 12, C_MUTED, false));
-        head.addView(titles, new LinearLayout.LayoutParams(0, -2, 1f));
-        TextView chip = text("v" + appVersion(), 11, Color.WHITE, true);
-        chip.setPadding(dp(8), dp(3), dp(8), dp(3));
-        GradientDrawable chipBg = new GradientDrawable();
-        chipBg.setColor(Color.rgb(34, 38, 43));
-        chipBg.setCornerRadius(dp(10));
-        chip.setBackground(chipBg);
-        head.addView(chip);
-        box.addView(head);
-
-        // Streifen in den Farben des Logos
-        LinearLayout stripe = new LinearLayout(this);
-        stripe.addView(colorBlock(C_GREEN), new LinearLayout.LayoutParams(0, -1, 1f));
-        stripe.addView(colorBlock(Color.rgb(225, 228, 232)), new LinearLayout.LayoutParams(0, -1, 1f));
-        stripe.addView(colorBlock(C_ACCENT), new LinearLayout.LayoutParams(0, -1, 1f));
-        LinearLayout.LayoutParams stLp = new LinearLayout.LayoutParams(-1, dp(3));
-        stLp.topMargin = dp(14);
-        stLp.bottomMargin = dp(4);
-        box.addView(stripe, stLp);
-
-        section(box, "Spielliste");
-        item(box, "\uD83D\uDD04", "„Aktualisieren“ lädt alle laufenden Spiele neu");
-        item(box, "\uD83C\uDF31", "Sparsam: abgefragt werden nur Ligen, die heute spielen (Statuszeile z. B. „5/28 Ligen“); den Spielplan lädt die App höchstens alle 30 Min.");
-        item(box, "\uD83D\uDC46", "Spiel antippen startet das Floating-Display – nochmal antippen entfernt es (📌 = angepinnt)");
-        item(box, "\uD83D\uDFE8", "Gelb hinterlegt: hervorgehobene Spiele (Standard: Neuss)");
-        item(box, "\uD83D\uDD52", "„Heute noch“: anstehende Spiele, blass dargestellt");
-        item(box, "\u23F0", "Antippen merkt das Spiel vor – das Floating erscheint bei Spielbeginn (nochmal antippen = aufheben). In den Optionen alternativ: sofort, blass bis zum Bully");
-        item(box, "\uD83D\uDCCB", "Lange drücken: Aufstellung beider Teams (sobald eingetragen) – auch per Knopf im Detailfenster; bei vorgemerkten Spielen erst der Display-Wecker-Schalter, dort Knopf „Aufstellung“");
-        item(box, "\u23F2", "Aktualisiert sich automatisch, solange die App offen ist");
-
-        section(box, "Reiter unten");
-        item(box, "\uD83C\uDFD2", "„Live“: die heutige Spielliste");
-        item(box, "\uD83D\uDCC5", "„Spielplan“: „Nächste“ = Spiele der nächsten 7 Tage · „Ergebnisse“ = letzte 7 Tage");
-        item(box, "\u2B50", "„Meine“: kommende Spiele und letzte Ergebnisse der hervorgehobenen Teams (Optionen → Hervorhebung)");
-        item(box, "\uD83D\uDCCA", "„Tabellen“: alle Ligen nach Altersklasse, Ligen der eigenen Teams oben – antippen zeigt die Tabelle");
-        item(box, "\u2194", "Nach links/rechts wischen wechselt den Reiter, „Zurück“ führt zur Live-Liste, \u21BB lädt den Spielplan neu");
-        section(box, "Statistik (v2.9)");
-        item(box, "\uD83D\uDCCA", "Tabelle einer Liga: oben umschalten oder wischen zwischen Tabelle · Scorer · Torhüter · Strafen "
-                + "(gesamte Liga, wie auf ehv-nrw.de). Spieler hervorgehobener Teams sind gelb markiert.");
-        item(box, "\u2606", "Aufstellung: Stern mit 1, 2 oder 3 vor dem Namen = die drei besten Scorer der Aufstellung "
-                + "(Punkte der Saison in dieser Liga). T/A/SM daneben zählen nur das aktuelle Spiel. Lange Namen: Tabelle seitlich schieben.");
-        section(box, "Livestream (RED+)");
-        item(box, "\u25B6", "Hat ein Spiel einen RED+-Stream, steht das RED+-Logo in der Live-, Spielplan- und Meine-Liste – antippen öffnet den Stream. In den Spiel-Details "
-                + "(Spielplan antippen bzw. Floating lange drücken) öffnet der Knopf „Watch on RED+“ das Spiel im Browser. "
-                + "Ohne direkten Link öffnet sich das RED+-Tagesprogramm. Abschaltbar in den Optionen unter „Livestream“.");
-        item(box, "\uD83D\uDC46", "Spiel antippen: Steckbrief mit Halle, Drittelergebnissen und Torschützen");
-        item(box, "\uD83D\uDCCD", "Halle antippen öffnet die Route in der Karten-App, „Kalender“ trägt das Spiel ein, „Tabelle“ zeigt die Liga");
-        item(box, "\u2753", "Läuft heute nichts mehr, erscheint in der Liste der Knopf „Nächste Spiele anzeigen“");
-
-        section(box, "Floating-Display");
-        item(box, "\u2195", "Ziehen verschiebt – die Position wird gespeichert");
-        item(box, "\uD83D\uDC46", "Antippen: Stufe 1 (klein) → 2 (Infozeile) → 3 (Ereignisliste, volle Breite) → 1");
-        item(box, "\u23F3", "Stufe 2 und 3 fallen von selbst auf Stufe 1 zurück (Standard 3 s bzw. 10 s – einstellbar)");
-        item(box, "\uD83D\uDCDA", "Mehrere Floatings stehen untereinander: wird eins größer, rutschen die anderen mit. Das oberste zieht den Stapel mit, jedes andere lässt sich herausziehen");
-        item(box, "\uD83D\uDCCB", "Lange drücken: Stufe 4 – Detailfenster mit allen Ereignissen + Display-Wecker für dieses Spiel; schließt nur über „Schließen“");
-        item(box, "\u2715", "Nach unten auf das ✕ ziehen: schließen");
-        item(box, "\uD83D\uDEA8", "Bei einem Tor: Stand kurz gelb und „TOR!“");
-        item(box, "\u23F1", "Aktualisierung alle 15 Sekunden");
-
-        section(box, "Kürzel in der Ereignisliste");
-        item(box, "2'", "Strafe mit Minuten; Name in Klammern = abgesessen von");
-        item(box, "PP", "Tor in Überzahl (Powerplay)");
-        item(box, "SH", "Tor in Unterzahl");
-        item(box, "EN", "Tor ins leere Tor");
-        item(box, "PS", "Penaltyschuss");
-        item(box, "\uD83E\uDDD1\u200D\u2696\uFE0F", "Schiri: HSR = Hauptschiedsrichter, LSR = Linienrichter, SR = beide Schiris im Zwei-Mann-System – "
-                + "aus den Einteilungen auf esrw.de, sofern dort eingetragen (oben in Stufe 3 und im Detailfenster)");
-
-        section(box, "Beenden");
-        item(box, "\uD83D\uDED1", "„App beenden“ ganz unten in den Optionen (\u2699) schließt alle Displays und die App – "
-                + "oder „Beenden“ in der Benachrichtigung");
-        item(box, "\uD83D\uDCF2", "App-Symbol lange drücken: „Alles deaktivieren“ (alle Floatings und Vormerkungen aus, ohne die App zu öffnen) "
-                + "sowie direkt „Meine Spiele“, „Spielplan“ oder „Tabellen“");
-        item(box, "\u23F0", "Gibt es Vormerkungen, fragt die App: „Alles beenden“ oder „Nur App schließen“ (Vormerkungen bleiben)");
-
-        section(box, "Berechtigungen");
-        item(box, "\uD83E\uDE9F", "„Über anderen Apps einblenden“ – nötig für das Floating-Display");
-        item(box, "\uD83D\uDD14", "Benachrichtigungen – optional, zeigt den Stand in der Statusleiste");
-
-        section(box, "Optionen (Zahnrad oben)");
-        item(box, "\u23F1", "Intervalle für Spielliste und Floating-Display");
-        item(box, "\uD83D\uDCF3", "Vibration bei Tor");
-        item(box, "\uD83D\uDD0E", "Hervorhebung: Suchbegriffe für Teamnamen, mehrere mit Komma");
-
-        section(box, "Display-Wecker");
-        item(box, "\uD83D\uDCF1", "In den Optionen einschalten: Bei Tor, Strafe, Bully, Drittel- und Spielende geht das "
-                + "Display an und zeigt die Meldung 8 Sekunden über dem Sperrbildschirm – ideal im Auto-Halter");
-        item(box, "\uD83D\uDC46", "Tippen schließt die Meldung sofort. Gilt für Spiele mit Floating oder Vormerkung");
-        item(box, "\uD83D\uDD14", "Optional dezenter Ton – läuft wie eine Navi-Ansage auch über Bluetooth im Auto");
-        item(box, "\uD83D\uDD14", "Je Spiel an/aus (Floating lange drücken) – auch wenn der Standard aus ist; 🔔 in der Infozeile = aktiv");
-        item(box, "\u23F0", "Schon vor dem Spiel: beim Vormerken fragt die App nach dem Display-Wecker; später ändern = vorgemerktes Spiel in der Liste lange drücken");
-
-        section(box, "Updates");
-        item(box, "\u2B06", "Die App prüft höchstens einmal am Tag, ob es eine neue Version gibt (in den Optionen abschaltbar). "
-                + "Dann erscheint oben „⬆ Update“ – Herunterladen öffnet die APK im Browser, installiert wird nur von dir");
-
-        section(box, "Datenquelle");
-        TextView src = text("ehv-nrw.de / hockeydata.net, Schiedsrichter-Einteilungen von esrw.de · "
-                + "inoffizielle App ohne Verbindung zum EHV NRW oder den Schiedsrichtern im Westen", 12, C_MUTED, false);
-        src.setPadding(0, dp(2), 0, 0);
-        box.addView(src);
-
-        android.widget.Button btLog = new android.widget.Button(this);
-        btLog.setText("\uD83D\uDCDC  Changelog – was ist neu?");
-        Ui.outline(btLog, C_GREEN);
-        btLog.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showChangelog();
-            }
-        });
-        LinearLayout.LayoutParams logLp = new LinearLayout.LayoutParams(-2, -2);
-        logLp.gravity = Gravity.CENTER_HORIZONTAL;
-        logLp.topMargin = dp(16);
-        box.addView(btLog, logLp);
-
-        // Credits
-        View line = colorBlock(Color.rgb(225, 228, 232));
-        LinearLayout.LayoutParams lnLp = new LinearLayout.LayoutParams(-1, dp(1));
-        lnLp.topMargin = dp(16);
-        lnLp.bottomMargin = dp(10);
-        box.addView(line, lnLp);
-        TextView credits = text("Gebaut von Justus Jonas & Michael Nowak\n– mit Claude an der Bande \uD83C\uDFD2", 12, C_MUTED, false);
-        credits.setGravity(Gravity.CENTER);
-        credits.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.ITALIC));
-        box.addView(credits, new LinearLayout.LayoutParams(-1, -2));
-        TextView more = text("Mehr Projekte und Downloads: cappy0815.github.io", 12, C_MUTED, false);
-        more.setGravity(Gravity.CENTER);
-        box.addView(more, new LinearLayout.LayoutParams(-1, -2));
-
-        FrameLayout frame = withScrollHint(sv);
-
-        Ui.dialog(new android.app.AlertDialog.Builder(this)
-                .setView(frame)
-                .setPositiveButton("Alles klar", null)
-                .show());
-    }
-
-    /** ScrollView mit "▼ weiter scrollen"-Hinweis unten, solange es weiter nach unten geht */
-    private FrameLayout withScrollHint(final ScrollView sv) {
-        sv.setVerticalFadingEdgeEnabled(true);
-        sv.setFadingEdgeLength(dp(48));
-        sv.setScrollbarFadingEnabled(false);
-        FrameLayout frame = new FrameLayout(this);
-        frame.addView(sv, new FrameLayout.LayoutParams(-1, -2));
-        final TextView more = text("\u25BC  weiter scrollen", 11, Color.WHITE, true);
-        more.setPadding(dp(12), dp(4), dp(12), dp(4));
-        GradientDrawable moreBg = new GradientDrawable();
-        moreBg.setColor(Color.argb(215, 34, 38, 43));
-        moreBg.setCornerRadius(dp(12));
-        more.setBackground(moreBg);
-        FrameLayout.LayoutParams moreLp = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-        moreLp.bottomMargin = dp(6);
-        frame.addView(more, moreLp);
-        more.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                sv.smoothScrollBy(0, sv.getHeight() * 2 / 3);
-            }
-        });
-        final Runnable updateMore = new Runnable() {
-            @Override
-            public void run() {
-                more.setVisibility(sv.canScrollVertically(1) ? View.VISIBLE : View.GONE);
-            }
-        };
-        sv.setOnScrollChangeListener(new View.OnScrollChangeListener() {
-            @Override
-            public void onScrollChange(View v, int x, int y, int ox, int oy) {
-                updateMore.run();
-            }
-        });
-        sv.getViewTreeObserver().addOnGlobalLayoutListener(new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
-            @Override
-            public void onGlobalLayout() {
-                updateMore.run();
-            }
-        });
-
-        return frame;
-    }
-
-    // ------------------------------------------------------------------ Changelog
-    private static final String[][] CHANGELOG = {
-            {"2.94", "App-Symbol lange drücken: „Alles deaktivieren“, „Meine Spiele“, „Spielplan“, „Tabellen“"},
-            {"2.93", "Display-Wecker schon beim Vormerken je Spiel einstellbar (Abfrage beim Vormerken, "
-                    + "vorgemerktes Spiel lange drücken), 🔔 in der Liste"},
-            {"2.92", "Scorer/Torhüter/Strafen: Name zweizeilig mit Trikotnummer und Team, kein seitliches Schieben mehr – Wischen wechselt wieder sauber die Seite"},
-            {"2.91", "Topscorer-Stern: Top 3 der aufgestellten Spieler (vorher des ganzen Kaders), Stern größer\n"
-                    + "Aufstellung und Statistik seitlich scrollbar, Namen vollständig"},
-            {"2.9", "Tabelle mit wischbaren Seiten Scorer · Torhüter · Strafen der ganzen Liga\n"
-                    + "Aufstellung: Topscorer 1–3 je Team mit Stern markiert"},
-            {"2.82", "Optionen: Knöpfe „Jetzt prüfen“/„Download“ und Speichern/Abbrechen sauber nebeneinander, "
-                    + "„App beenden“ als eigener Knopf ganz unten"},
-            {"2.81", "RED+-Logo auch in Live-, Spielplan- und Meine-Liste (antippen öffnet den Stream)\n"
-                    + "Liga ohne „Hauptrunde 26/27“, Halle im Spielplan in eigener Zeile"},
-            {"2.8", "RED+-Livestream: Knopf „Watch on RED+“ in den Spiel-Details, „▶ RED+“ in den Listen\n"
-                    + "Abschaltbar in den Optionen unter „Livestream“"},
-            {"2.71", "Reiterleiste mit modernen Linien-Symbolen, aktiver Reiter grün hinterlegt"},
-            {"2.7", "Neue Reiter unten: Live · Spielplan · Meine · Tabellen – wischen zum Wechseln\n"
-                    + "„Tabellen“: alle Ligen nach Altersklasse, Ligen der eigenen Teams oben\n"
-                    + "Kopfleiste nur noch Optionen und Hilfe, „App beenden“ jetzt in den Optionen"},
-            {"2.6", "Schiedsrichter im Ticker: aus den Einteilungen von esrw.de (Stufe 3 und Detailfenster)\n"
-                    + "Update-Prüfung: einmal am Tag (abschaltbar), „⬆ Update“ oben, Abschnitt „Updates“ in den Optionen"},
-            {"2.51", "Neues App-Icon: Puck auf Eis mit EHV-Farbstreifen (wie die Windows-Version)"},
-            {"2.5", "Weniger Datenverbrauch: nur Ligen mit heutigen Spielen werden abgefragt, Spielplan höchstens alle 30 Min.\n"
-                    + "Spielliste standardmäßig jede Minute (30 Sekunden entfallen)\n"
-                    + "Detailfenster: Knopf „Aufstellung“"},
-            {"2.4", "Benachrichtigung: mehrere Spiele stehen sauber untereinander (aufklappen)\n"
-                    + "Ereignisliste: Torvorlagen in einer zweiten Zeile („Vorl. …“)\n"
-                    + "Ereignisliste: Tore und Strafen stehen spaltengenau untereinander"},
-            {"2.3", "Mehrere Floatings ordnen sich untereinander an und rutschen bei Stufe 2 mit\n"
-                    + "Floating Stufe 2 zeigt die Altersklasse/Liga, z. B. „U15 RL A · 2. Drittel“\n"
-                    + "Tabelle mit Teamkürzeln (keine abgeschnittenen Namen mehr)\n"
-                    + "Steckbrief: „Endstand“ ohne die Anstoßzeit\n"
-                    + "Server-Ausfall: schnelle, deutliche Meldung, alter Stand bleibt sichtbar"},
-            {"2.23", "Vereinswappen im Spielplan, im Steckbrief und in der Tabelle"},
-            {"2.22", "Hallen-Adresse: Unterstreichung korrigiert (die 2. Zeile war durchgestrichen)"},
-            {"2.21", "Titelleiste nur noch mit Symbolen (Spielplan, Optionen, Hilfe, Beenden) – der Titel ist wieder frei\n"
-                    + "Steckbrief: „Route“-Knopf entfällt, die Halle selbst antippen\nAlle Knöpfe mittig ausgerichtet"},
-            {"2.2", "Spielplan (Kalender-Symbol oben): Nächste Spiele, Ergebnisse der letzten 7 Tage, Meine Spiele\n"
-                    + "Steckbrief je Spiel mit Halle, Drittelergebnissen und Torschützen\n"
-                    + "Route zur Halle, Spiel in den Kalender eintragen, Tabelle der Liga\n"
-                    + "Knopf „Nächste Spiele anzeigen“, wenn heute nichts mehr läuft\n"
-                    + "Halle bei anstehenden Spielen in der Liste; Tabelle auch im Detailfenster"},
-            {"2.16", "Angepinntes Spiel in der Liste nochmal antippen entfernt das Floating; 📌 markiert angepinnte Spiele\n"
-                    + "Langes Drücken aufs Floating: kein ✕ mehr nach dem Öffnen des Detailfensters, weniger empfindlich\n"
-                    + "Kleines EHV-Logo in der Titelleiste"},
-            {"2.15", "Floating-Stufen: Stufe 2 und 3 fallen nach einstellbarer Zeit auf Stufe 1 zurück, "
-                    + "Detailfenster (Stufe 4) schließt nur über den Knopf und setzt auf Stufe 1 zurück\n"
-                    + "Vormerken minimiert die App nicht mehr – nur das Anpinnen eines laufenden Spiels\n"
-                    + "Changelog wandert in die Hilfe\nNeue runde Knöpfe in EHV-Farben"},
-            {"2.14", "Optionen neu sortiert (eigener Bereich Floating-Display) + „weiter scrollen“\n"
-                    + "Ereignisliste klappt nach einstellbarer Zeit wieder zu (Standard 3 s)\n"
-                    + "Detailfenster schließt nach einstellbarer Zeit (Standard 10 s)\n"
-                    + "App legt sich nach dem Anpinnen/Vormerken in den Hintergrund (abschaltbar)\n"
-                    + "Display-Wecker je Spiel auch einschaltbar, wenn er generell aus ist; 🔔 im Floating\n"
-                    + "Changelog; Fußzeile gekürzt"},
-            {"2.13", "Ereignisliste in voller Breite, Schrift etwas größer\n"
-                    + "Lange drücken aufs Floating: Detailfenster mit allen Ereignissen und Display-Wecker je Spiel\n"
-                    + "Dezenter Ton zur Display-Meldung (auch über Bluetooth)"},
-            {"2.12", "Display-Wecker: Meldung groß über dem Sperrbildschirm, mit Testknopf\nAndroid Auto entfernt"},
-            {"2.11", "Android Auto: Testmeldung zur Fehlersuche"},
-            {"2.1", "Android Auto: Spielereignisse als Nachricht (Experiment)"},
-            {"2.01", "Zahnrad-Symbol, Schalter statt Auswahlliste beim Vormerken\n"
-                    + "„Beenden“ fragt nach, wenn noch Spiele vorgemerkt sind"},
-            {"2.0", "„Heute noch“: anstehende Spiele blass in der Liste, Vormerken bis zum Bully\n"
-                    + "Vibration bei Spielbeginn, Aufstellung per langem Druck, Hervorhebung (z. B. Neuss), Optionen"},
-            {"1.x", "Liste der laufenden EHV-NRW-Spiele, Floating-Display mit Logos, Stand und Infozeile\n"
-                    + "Verschieben, Schließen über das ✕, Ereignisliste per Antippen, Hilfe, Beenden"},
-    };
-
-    private void showChangelog() {
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(dp(20), dp(18), dp(20), dp(6));
-        box.addView(text("Changelog", 18, C_TEXT, true));
-        for (String[] e : CHANGELOG) {
-            section(box, "Version " + e[0]);
-            for (String l : e[1].split("\n")) item(box, "•", l);
-        }
-        ScrollView sv = new ScrollView(this);
-        sv.addView(box);
-        Ui.dialog(new android.app.AlertDialog.Builder(this).setView(withScrollHint(sv)).setPositiveButton("Schließen", null).show());
-    }
-
-    // ------------------------------------------------------------------ Optionen
-    private void showOptions() {
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(dp(20), dp(18), dp(20), dp(6));
-        ScrollView sv = new ScrollView(this);
-        sv.addView(box);
-
-        box.addView(text("Optionen", 18, C_TEXT, true));
-        LinearLayout stripe = new LinearLayout(this);
-        stripe.addView(colorBlock(C_GREEN), new LinearLayout.LayoutParams(0, -1, 1f));
-        stripe.addView(colorBlock(Color.rgb(225, 228, 232)), new LinearLayout.LayoutParams(0, -1, 1f));
-        stripe.addView(colorBlock(C_ACCENT), new LinearLayout.LayoutParams(0, -1, 1f));
-        LinearLayout.LayoutParams stLp = new LinearLayout.LayoutParams(-1, dp(3));
-        stLp.topMargin = dp(10);
-        stLp.bottomMargin = dp(4);
-        box.addView(stripe, stLp);
-
-        section(box, "Spielliste");
-        final Spinner spList = spinner(Prefs.LIST_NAMES, Prefs.indexOf(Prefs.LIST_STEPS, Prefs.listSec(this)));
-        box.addView(labeled("Aktualisierung", spList));
-        final Switch swMin = toggle("App nach dem Anpinnen eines laufenden Spiels in den Hintergrund", Prefs.minimizeOnPin(this));
-        box.addView(swMin);
-
-        section(box, "Floating-Display");
-        final Spinner spTick = spinner(Prefs.TICK_NAMES, Prefs.indexOf(Prefs.TICK_STEPS, Prefs.tickSec(this)));
-        box.addView(labeled("Aktualisierung", spTick));
-        final Spinner spInfo = spinner(Prefs.INFO_NAMES, Prefs.indexOf(Prefs.INFO_STEPS, Prefs.infoSec(this)));
-        box.addView(labeled("Stufe 2 (Infozeile) zurück nach", spInfo));
-        final Spinner spEvents = spinner(Prefs.EVENTS_NAMES, Prefs.indexOf(Prefs.EVENTS_STEPS, Prefs.eventsSec(this)));
-        box.addView(labeled("Stufe 3 (Ereignisliste) zurück nach", spEvents));
-        final Switch swVib = toggle("Vibration bei Tor", Prefs.vibrate(this));
-        box.addView(swVib);
-
-        section(box, "Anstehende Spiele (antippen)");
-        final Switch swRemind = toggle("Vormerken", Prefs.remindMode(this));
-        box.addView(swRemind);
-        final TextView remindHint = text("", 12, C_MUTED, false);
-        remindHint.setPadding(0, 0, 0, dp(6));
-        box.addView(remindHint);
-        final Runnable updHint = new Runnable() {
-            @Override
-            public void run() {
-                remindHint.setText(swRemind.isChecked()
-                        ? "An: Das Floating erscheint automatisch bei Spielbeginn."
-                        : "Aus: Das Floating erscheint sofort – blass bis zum Bully.");
-            }
-        };
-        updHint.run();
-        swRemind.setOnCheckedChangeListener(new android.widget.CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(android.widget.CompoundButton b, boolean on) {
-                updHint.run();
-            }
-        });
-        final Switch swStart = toggle("Bei Spielbeginn vibrieren", Prefs.startVibrate(this));
-        box.addView(swStart);
-
-        section(box, "Display-Wecker");
-        final Switch swWake = toggle("Standard: für alle Spiele an", Prefs.wakeOn(this));
-        box.addView(swWake);
-        TextView wakeHint = text("Tor, Strafe, Bully, Drittel- und Spielende erscheinen 8 Sekunden groß über dem "
-                + "Sperrbildschirm – nur wenn das Display aus oder gesperrt ist. Das Display geht danach "
-                + "mit der normalen Bildschirm-Zeitsperre wieder aus. Einzelne Spiele: Floating lange drücken – "
-                + "geht auch, wenn der Standard aus ist.", 12, C_MUTED, false);
-        box.addView(wakeHint);
-        final Switch swSound = toggle("Dezenter Ton dazu (auch über Bluetooth im Auto)", Prefs.wakeSound(this));
-        box.addView(swSound);
-        TextView soundHint = text("Kurzes „Ding-Ding“ in Medienlautstärke; laufende Musik wird dafür kurz leiser.",
-                12, C_MUTED, false);
-        box.addView(soundHint);
-        android.widget.Button btTest = new android.widget.Button(this);
-        btTest.setText("\uD83D\uDCF1  Test: in 5 Sekunden");
-        Ui.pill(btTest, Ui.DARK);
-        btTest.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Prefs.saveWake(MainActivity.this, swWake.isChecked(), swSound.isChecked());
-                Toast.makeText(MainActivity.this, "Jetzt Display ausschalten – Testmeldung kommt in 5 Sekunden",
-                        Toast.LENGTH_LONG).show();
-                final android.content.Context app = getApplicationContext();
-                ui.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        Game t = new Game();
-                        t.id = "test";
-                        t.league = "Testmeldung";
-                        t.homeShort = "SGNM";
-                        t.awayShort = "NEU";
-                        t.homeScore = 2;
-                        t.awayScore = 1;
-                        try {
-                            WakeActivity.show(app, t, "TOR SGNM!", "#77 Thelen\nVorlage #12 Douben\nÜberzahl · 15:25");
-                        } catch (Exception e) {
-                            Toast.makeText(app, "Display-Wecker: " + e.getClass().getSimpleName(), Toast.LENGTH_LONG).show();
-                        }
-                    }
-                }, 5000);
-            }
-        });
-        LinearLayout.LayoutParams btLp = new LinearLayout.LayoutParams(-2, -2);
-        btLp.gravity = Gravity.CENTER_HORIZONTAL;
-        btLp.topMargin = dp(6);
-        box.addView(btTest, btLp);
-
-        section(box, "Hervorhebung in der Spielliste");
-        final Switch swFav = toggle("Spiele hervorheben, wenn ein Teamname enthält:", Prefs.favOn(this));
-        box.addView(swFav);
-        final EditText etFav = new EditText(this);
-        etFav.setText(Prefs.favTerms(this));
-        etFav.setSingleLine(true);
-        etFav.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        box.addView(etFav, new LinearLayout.LayoutParams(-1, -2));
-        TextView hint = text("mehrere Begriffe mit Komma trennen, z. B.  Neuss, Moers", 12, C_MUTED, false);
-        box.addView(hint);
-
-        section(box, "Livestream");
-        final Switch swStream = toggle("RED+-Link anzeigen, wenn vorhanden", Prefs.streamOn(this));
-        box.addView(swStream);
-        box.addView(text("Knopf „Watch on RED+“ in den Spiel-Details und RED+-Logo in den Listen. "
-                + "Der Link kommt aus dem EHV-Spielplan; Ansehen über die RED+-Seite (ggf. kostenpflichtig).",
-                12, C_MUTED, false));
-
-        final Switch[] swUpd = new Switch[1];
-        updateSection(box, swUpd);
-
-        // v2.82: „App beenden“ als Knopf im Inhalt statt dritter Dialog-Knopf (die drei stapelten sich und wurden abgeschnitten)
-        section(box, "App");
-        android.widget.Button btQuit = new android.widget.Button(this);
-        btQuit.setText("App beenden");
-        btQuit.setSingleLine(true);
-        Ui.outline(btQuit, Ui.RED);
-        LinearLayout.LayoutParams qLp = new LinearLayout.LayoutParams(-1, -2);
-        qLp.topMargin = dp(4);
-        qLp.bottomMargin = dp(8);
-        box.addView(btQuit, qLp);
-        box.addView(text("Schließt alle Floatings und beendet die App.", 12, C_MUTED, false));
-
-        final android.app.AlertDialog optDlg = new android.app.AlertDialog.Builder(this)
-                .setView(withScrollHint(sv))
-                .setNegativeButton("Abbrechen", null)
-                .setPositiveButton("Speichern", new android.content.DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(android.content.DialogInterface d, int which) {
-                        Prefs.save(MainActivity.this,
-                                Prefs.LIST_STEPS[spList.getSelectedItemPosition()],
-                                Prefs.TICK_STEPS[spTick.getSelectedItemPosition()],
-                                swVib.isChecked(), swFav.isChecked(), etFav.getText().toString().trim());
-                        Prefs.saveUpcoming(MainActivity.this, swRemind.isChecked(), swStart.isChecked());
-                        Update.setAuto(MainActivity.this, swUpd[0].isChecked());
-                        Prefs.setStreamOn(MainActivity.this, swStream.isChecked());
-                        Prefs.saveWake(MainActivity.this, swWake.isChecked(), swSound.isChecked());
-                        Prefs.saveFloat(MainActivity.this,
-                                Prefs.INFO_STEPS[spInfo.getSelectedItemPosition()],
-                                Prefs.EVENTS_STEPS[spEvents.getSelectedItemPosition()],
-                                swMin.isChecked());
-                        adapter.notifyDataSetChanged(); // Hervorhebung sofort neu zeichnen
-                        scheduleAuto();
-                        Toast.makeText(MainActivity.this, "Optionen gespeichert", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .show();
-        Ui.dialog(optDlg);
-        btQuit.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                optDlg.dismiss();
-                quitApp();
-            }
-        });
-    }
-
-    private Spinner spinner(String[] names, int sel) {
-        Spinner sp = new Spinner(this);
-        ArrayAdapter<String> ad = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, names);
-        ad.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        sp.setAdapter(ad);
-        sp.setSelection(sel);
-        return sp;
-    }
-
-    private LinearLayout labeled(String label, View v) {
-        LinearLayout row = new LinearLayout(this);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.addView(text(label, 14, C_TEXT, false), new LinearLayout.LayoutParams(0, -2, 1f));
-        row.addView(v, new LinearLayout.LayoutParams(dp(160), -2));
-        return row;
+    /** nach „Speichern“ in den Optionen */
+    void optionsSaved() {
+        adapter.notifyDataSetChanged(); // Hervorhebung sofort neu zeichnen
+        scheduleAuto();
     }
 
     /**
-     * v2.93: Display-Wecker für ein vorgemerktes Spiel (vorher nur im Detailfenster des Floatings – das gibt es vor dem Bully nicht).
-     * Gespeichert je Spiel-ID (Prefs.setWakeForGame), gilt dann ab „Bully!“ für alle Meldungen dieses Spiels.
-     * fromList = langes Drücken in der Liste: zusätzlich Knopf „Aufstellung“.
+     * v2.93: Display-Wecker für ein gerade vorgemerktes Spiel (das Floating gibt es vor dem Bully noch nicht).
+     * Gespeichert je Spiel-ID (Prefs.setWakeForGame), gilt dann ab „Bully!“. Später: Steckbrief (lange drücken).
      */
-    private void wakeDialog(final Game g, boolean fromList) {
+    private void wakeDialog(final Game g) {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(dp(20), dp(16), dp(20), dp(4));
-        box.addView(text(g.homeShort + " – " + g.awayShort, 17, C_TEXT, true));
-        box.addView(text("\u23F0 vorgemerkt · " + g.phaseText(), 12, C_MUTED, false));
-        final Switch sw = toggle("Display-Wecker für dieses Spiel", Prefs.wakeForGame(this, g.id));
+        box.addView(Ui.text(this, g.homeShort + " – " + g.awayShort, 17, Ui.TEXT, true));
+        box.addView(Ui.text(this, "\u23F0 vorgemerkt · " + g.phaseText(), 12, C_MUTED, false));
+        final Switch sw = Ui.toggle(this, "Display-Wecker für dieses Spiel", Prefs.wakeForGame(this, g.id));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
         lp.topMargin = dp(10);
         box.addView(sw, lp);
-        box.addView(text("Ab „Bully!“ erscheinen Tor, Strafe, Drittel- und Spielende groß über dem Sperrbildschirm. "
-                + "Später änderbar: Spiel in der Liste lange drücken oder – nach dem Bully – Floating lange drücken.", 12, C_MUTED, false));
-        android.app.AlertDialog.Builder b = new android.app.AlertDialog.Builder(this)
+        box.addView(Ui.text(this, "Ab „Bully!“ erscheinen Tor, Strafe, Drittel- und Spielende groß über dem Sperrbildschirm. "
+                + "Später änderbar: Spiel in der Liste lange drücken (Steckbrief) oder – nach dem Bully – Floating lange drücken.", 12, C_MUTED, false));
+        Ui.dialog(new android.app.AlertDialog.Builder(this)
                 .setView(box)
                 .setPositiveButton("OK", new android.content.DialogInterface.OnClickListener() {
                     @Override
@@ -1007,77 +473,42 @@ public class MainActivity extends Activity {
                         Prefs.setWakeForGame(MainActivity.this, g.id, sw.isChecked());
                         adapter.notifyDataSetChanged();
                     }
-                });
-        if (fromList) b.setNeutralButton("Aufstellung", new android.content.DialogInterface.OnClickListener() {
+                })
+                .show());
+    }
+
+    /** v2.95: „Alles deaktivieren“ – Floatings und Vormerkungen aus, die App bleibt offen (wie Benachrichtigung/App-Symbol) */
+    void deactivateAll(boolean toast) {
+        int n = OverlayService.deactivateAll(this);
+        if (toast) Toast.makeText(this, OverlayService.deactivatedText(n), Toast.LENGTH_SHORT).show();
+        ui.postDelayed(new Runnable() {
             @Override
-            public void onClick(android.content.DialogInterface d, int w) {
-                Prefs.setWakeForGame(MainActivity.this, g.id, sw.isChecked());
+            public void run() {
                 adapter.notifyDataSetChanged();
-                LineupSheet.show(MainActivity.this, g);
             }
-        });
-        Ui.dialog(b.show());
+        }, 500);
     }
 
-    private Switch toggle(String label, boolean on) {
-        Switch sw = new Switch(this);
-        sw.setText(label);
-        sw.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        sw.setTextColor(C_TEXT);
-        sw.setChecked(on);
-        sw.setPadding(0, dp(6), 0, dp(6));
-        return sw;
-    }
 
-    private TextView text(String s, float sp, int color, boolean bold) {
-        TextView t = new TextView(this);
-        t.setText(s);
-        t.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp);
-        t.setTextColor(color);
-        if (bold) t.setTypeface(Typeface.DEFAULT_BOLD);
-        return t;
-    }
-
-    private View colorBlock(int color) {
-        View v = new View(this);
-        v.setBackgroundColor(color);
-        return v;
-    }
-
-    private void section(LinearLayout box, String title) {
-        TextView h = text(title.toUpperCase(Locale.GERMANY), 11, C_ACCENT, true);
-        h.setLetterSpacing(0.08f);
-        h.setPadding(0, dp(14), 0, dp(4));
-        box.addView(h);
-    }
-
-    private void item(LinearLayout box, String symbol, String body) {
-        LinearLayout row = new LinearLayout(this);
-        row.setPadding(0, dp(3), 0, dp(3));
-        TextView sym = text(symbol, 12, C_TEXT, true);
-        sym.setGravity(Gravity.CENTER_HORIZONTAL);
-        row.addView(sym, new LinearLayout.LayoutParams(dp(30), -2));
-        row.addView(text(body, 13, C_TEXT, false), new LinearLayout.LayoutParams(0, -2, 1f));
-        box.addView(row);
-    }
-
-    /** Beendet alles: Floating-Dienst stoppen (entfernt alle Displays) und App aus der Uebersicht nehmen. */
-    private void quitApp() {
+    /** „App beenden“: alles deaktivieren und App schließen; bei Vormerkungen vorher fragen, ob sie bleiben sollen. */
+    void quitApp() {
         int n = OverlayService.pendingCount();
         if (n == 0) {
             quitAll();
             return;
         }
         Ui.dialog(new android.app.AlertDialog.Builder(this)
-                .setTitle("Beenden")
-                .setMessage(n == 1 ? "Es ist noch 1 Spiel vorgemerkt." : "Es sind noch " + n + " Spiele vorgemerkt.")
-                .setPositiveButton("Alles beenden", new android.content.DialogInterface.OnClickListener() {
+                .setTitle("App beenden")
+                .setMessage((n == 1 ? "Es ist noch 1 Spiel vorgemerkt." : "Es sind noch " + n + " Spiele vorgemerkt.")
+                        + "\n\n„Alles deaktivieren“: Vormerkungen und Floatings aus, App zu.\n„Behalten“: nur die App schließen, "
+                        + "die Vormerkungen bleiben aktiv.")
+                .setPositiveButton("Alles deaktivieren", new android.content.DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(android.content.DialogInterface d, int w) {
                         quitAll();
                     }
                 })
-                .setNegativeButton("Nur App schließen", new android.content.DialogInterface.OnClickListener() {
+                .setNegativeButton("Behalten", new android.content.DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(android.content.DialogInterface d, int w) {
                         // Dienst laeuft weiter: Vormerkungen und Floatings bleiben erhalten
@@ -1147,7 +578,7 @@ public class MainActivity extends Activity {
                         String time = new SimpleDateFormat("HH:mm:ss", Locale.GERMANY).format(new Date());
                         if (fRes == null) {
                             // alter Stand bleibt stehen; deutlich rot melden, neuer Versuch im normalen Intervall
-                            status.setTextColor(C_ACCENT);
+                            status.setTextColor(Ui.RED);
                             status.setText("\u26A0 " + (fErr == null ? "Fehler" : fErr) + " · Versuch " + time
                                     + (lastOk.isEmpty() ? "" : " · letzter Stand " + lastOk));
                             emptyTxt.setText("\u26A0 Server nicht erreichbar – es wird automatisch erneut versucht.");
@@ -1203,7 +634,7 @@ public class MainActivity extends Activity {
             Toast.makeText(this, remind
                     ? "\u23F0 Vorgemerkt – das Floating erscheint bei Spielbeginn"
                     : g.homeShort + " – " + g.awayShort + " schwebt jetzt auf dem Bildschirm", Toast.LENGTH_SHORT).show();
-            if (remind) wakeDialog(g, false); // v2.93: Display-Wecker gleich beim Vormerken festlegen
+            if (remind) wakeDialog(g); // v2.93: Display-Wecker gleich beim Vormerken festlegen
             if (!remind && Prefs.minimizeOnPin(this)) { // beim Vormerken offen lassen
                 ui.postDelayed(new Runnable() {
                     @Override
@@ -1223,7 +654,7 @@ public class MainActivity extends Activity {
     }
 
     private int dp(int v) {
-        return Math.round(v * getResources().getDisplayMetrics().density);
+        return Ui.dp(this, v);
     }
 
     // ------------------------------------------------------------------ Liste
@@ -1332,7 +763,7 @@ public class MainActivity extends Activity {
 
         void bind(final Game g) {
             boundId = g.id;
-            setBackgroundColor(Prefs.isFav(MainActivity.this, g) ? Color.rgb(255, 246, 214) : Color.TRANSPARENT);
+            setBackgroundColor(Prefs.isFav(MainActivity.this, g) ? Ui.FAV : Color.TRANSPARENT);
             league.setText(GameSheet.leagueShort(g));
             GameSheet.bindStreamBadge(MainActivity.this, red, g);
             score.setText(g.type == 1 ? "–" : g.score());

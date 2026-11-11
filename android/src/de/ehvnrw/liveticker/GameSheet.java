@@ -30,9 +30,9 @@ import java.util.Locale;
 
 /** Spiel-Steckbrief (Spielplan), Tabelle, Route und Kalendereintrag. */
 final class GameSheet {
-    private static final int C_TEXT = Color.rgb(34, 38, 43);
-    private static final int C_MUTED = Color.rgb(110, 116, 124);
-    private static final int C_FAV = Color.rgb(255, 246, 214);
+    private static final int C_TEXT = Ui.TEXT;
+    private static final int C_MUTED = Ui.MUTED;
+    private static final int C_FAV = Ui.FAV;
     private static final int THEME = android.R.style.Theme_Material_Light_Dialog_Alert;
     private static final java.util.concurrent.ExecutorService POOL = java.util.concurrent.Executors.newFixedThreadPool(4);
     private static final Handler UI = new Handler(Looper.getMainLooper());
@@ -127,16 +127,11 @@ final class GameSheet {
     }
 
     private static int dp(Activity a, int v) {
-        return Math.round(v * a.getResources().getDisplayMetrics().density);
+        return Ui.dp(a, v);
     }
 
     private static TextView text(Activity a, String s, float sp, int color, boolean bold) {
-        TextView t = new TextView(a);
-        t.setText(s);
-        t.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp);
-        t.setTextColor(color);
-        if (bold) t.setTypeface(Typeface.DEFAULT_BOLD);
-        return t;
+        return Ui.text(a, s, sp, color, bold);
     }
 
     /** "NRW - U15" + "Regionalliga A Hauptrunde 2026/27" -> "U15 · Regionalliga A Hauptrunde" */
@@ -204,6 +199,15 @@ final class GameSheet {
 
     // ------------------------------------------------------------------ Steckbrief
     static void show(final Activity a, final Game g) {
+        show(a, g, null);
+    }
+
+    /**
+     * Steckbrief. v2.95: auch aus der Live-Liste (lange drücken) – dann mit Knopf „Aufstellung“ und,
+     * bei vorgemerkten Spielen, dem Schalter „Display-Wecker für dieses Spiel“ (vorher eigenes Fenster).
+     * changed läuft nach einer Änderung am Wecker-Schalter (Liste neu zeichnen), darf null sein.
+     */
+    static void show(final Activity a, final Game g, final Runnable changed) {
         LinearLayout box = new LinearLayout(a);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(dp(a, 22), dp(a, 18), dp(a, 22), dp(a, 4));
@@ -260,7 +264,21 @@ final class GameSheet {
         View stream = streamView(a, g, false);
         if (stream != null) box.addView(stream, new LinearLayout.LayoutParams(-1, -2));
 
-        // Knoepfe (mittig): Kalender (nur kommende Spiele), Tabelle – Route = Halle antippen
+        if (OverlayService.isPending(g.id)) {
+            final android.widget.Switch sw = Ui.toggle(a, "\u23F0 vorgemerkt · Display-Wecker für dieses Spiel", Prefs.wakeForGame(a, g.id));
+            sw.setOnCheckedChangeListener(new android.widget.CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(android.widget.CompoundButton b, boolean on) {
+                    Prefs.setWakeForGame(a, g.id, on);
+                    if (changed != null) changed.run();
+                }
+            });
+            LinearLayout.LayoutParams wl = new LinearLayout.LayoutParams(-1, -2);
+            wl.topMargin = dp(a, 8);
+            box.addView(sw, wl);
+        }
+
+        // Knoepfe (mittig): Kalender (nur kommende Spiele), Tabelle, Aufstellung (heute/live/beendet) – Route = Halle antippen
         LinearLayout btns = new LinearLayout(a);
         btns.setGravity(Gravity.CENTER_HORIZONTAL);
         btns.setPadding(0, dp(a, 14), 0, dp(a, 6));
@@ -276,11 +294,37 @@ final class GameSheet {
                 standings(a, g.divisionId, leagueShort(g));
             }
         }), weight(a));
+        if (lineupUseful(g)) btns.addView(button(a, "Aufstellung", Ui.DARK, new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                LineupSheet.show(a, g);
+            }
+        }), weight(a));
+        if (btns.getChildCount() == 3) for (int i = 0; i < 3; i++) { // drei Knöpfe: gleich breit, einzeilig
+            Button b = (Button) btns.getChildAt(i);
+            b.setSingleLine(true);
+            b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+            b.setPadding(dp(a, 6), dp(a, 9), dp(a, 6), dp(a, 9));
+            b.setMinWidth(0);
+            b.setMinimumWidth(0);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1f);
+            lp.leftMargin = dp(a, 3);
+            lp.rightMargin = dp(a, 3);
+            b.setLayoutParams(lp);
+        }
         if (btns.getChildCount() > 0) box.addView(btns, new LinearLayout.LayoutParams(-1, -2));
 
         ScrollView sv = new ScrollView(a);
         sv.addView(box);
         Ui.dialog(new AlertDialog.Builder(a, THEME).setView(sv).setPositiveButton("Schließen", null).show());
+    }
+
+    /** Aufstellung ist sinnvoll ab dem Spieltag (Vereine tragen sie meist kurz vorher ein), bei Live- und beendeten Spielen */
+    private static boolean lineupUseful(Game g) {
+        if (g.status != 0) return true;
+        if (g.startMs <= 0) return false;
+        long now = System.currentTimeMillis();
+        return g.startMs - now < 24L * 3600 * 1000;
     }
 
     /**

@@ -30,8 +30,8 @@ class SchedulePane extends LinearLayout {
 
     static final int TAB_NEXT = 0, TAB_RESULTS = 1, TAB_MINE = 2;
     private static final long DAY = 24L * 60 * 60 * 1000;
-    private static final int C_TEXT = Color.rgb(34, 38, 43);
-    private static final int C_MUTED = Color.rgb(110, 116, 124);
+    private static final int C_TEXT = Ui.TEXT;
+    private static final int C_MUTED = Ui.MUTED;
 
     private final Activity a;
     private final boolean mine;
@@ -241,7 +241,7 @@ class SchedulePane extends LinearLayout {
     }
 
     private int dp(int v) {
-        return Math.round(v * a.getResources().getDisplayMetrics().density);
+        return Ui.dp(a, v);
     }
 
     // ------------------------------------------------------------------ Liste
@@ -363,7 +363,7 @@ class SchedulePane extends LinearLayout {
         }
 
         void bind(Game g) {
-            setBackgroundColor(Prefs.isFav(a, g) ? Color.rgb(255, 246, 214) : Color.TRANSPARENT);
+            setBackgroundColor(Prefs.isFav(a, g) ? Ui.FAV : Color.TRANSPARENT);
             if (g.status == 4) {
                 left.setText(g.homeScore + ":" + g.awayScore + (g.overtime || g.shootout ? "\n" + GameSheet.resultSuffix(g).trim() : ""));
                 left.setTextColor(C_TEXT);

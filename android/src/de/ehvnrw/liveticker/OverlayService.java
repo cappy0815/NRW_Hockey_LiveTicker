@@ -167,6 +167,21 @@ public class OverlayService extends Service {
         return LIVE.size();
     }
 
+    /**
+     * v2.95: „Alles deaktivieren“ – eine Stelle für App-Symbol, Optionen und Benachrichtigung.
+     * Entfernt alle Floatings und Vormerkungen; gibt die Zahl zurück (0 = es war nichts aktiv, Dienst wird nicht gestartet).
+     */
+    static int deactivateAll(android.content.Context c) {
+        int n = liveCount() + pendingCount();
+        if (n > 0) c.startForegroundService(new Intent(c, OverlayService.class).setAction(ACTION_STOP));
+        return n;
+    }
+
+    static String deactivatedText(int n) {
+        return n == 0 ? "Keine Floatings oder Vormerkungen aktiv"
+                : n == 1 ? "1 Floating/Vormerkung deaktiviert" : n + " Floatings/Vormerkungen deaktiviert";
+    }
+
     static Game liveGame(String id) {
         return id == null ? null : LIVE.get(id);
     }
@@ -372,7 +387,7 @@ public class OverlayService extends Service {
         PendingIntent stop = PendingIntent.getService(this, 1,
                 new Intent(this, OverlayService.class).setAction(ACTION_STOP),
                 PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-        Notification.Action stopAction = new Notification.Action.Builder(null, "Beenden", stop).build();
+        Notification.Action stopAction = new Notification.Action.Builder(null, "Alles deaktivieren", stop).build();
         Notification.Builder nb = new Notification.Builder(this, CHANNEL)
                 .setSmallIcon(R.drawable.ic_stat)
                 .setContentTitle(title)
@@ -406,7 +421,7 @@ public class OverlayService extends Service {
     }
 
     private int dp(float v) {
-        return Math.round(v * getResources().getDisplayMetrics().density);
+        return Ui.dp(this, v);
     }
 
     // ------------------------------------------------------------------ "X" zum Entfernen (unten mittig)
