@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- v2.94: Texte der App-Verknüpfungen -->
+    <string name="sc_off_short">Deaktivieren</string>
+    <string name="sc_off_long">Alles deaktivieren</string>
+    <string name="sc_mine">Meine Spiele</string>
+    <string name="sc_plan">Spielplan</string>
+    <string name="sc_tables">Tabellen</string>
+</resources>

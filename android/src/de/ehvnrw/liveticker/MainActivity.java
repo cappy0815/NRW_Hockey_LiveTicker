@@ -216,6 +216,23 @@ public class MainActivity extends Activity {
                 invalidateOptionsMenu();
             }
         });
+        openTabFromIntent(getIntent());
+    }
+
+    /** v2.94: App-Verknüpfungen „Meine Spiele“, „Spielplan“, „Tabellen“ öffnen direkt den Reiter */
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        openTabFromIntent(intent);
+    }
+
+    private void openTabFromIntent(Intent intent) {
+        String a = intent == null ? null : intent.getAction();
+        if (a == null) return;
+        if (a.endsWith(".TAB_MINE")) selectTab(T_MINE);
+        else if (a.endsWith(".TAB_PLAN")) selectTab(T_PLAN);
+        else if (a.endsWith(".TAB_TABLES")) selectTab(T_TABLES);
     }
 
     // ------------------------------------------------------------------ Reiter (v2.7)
@@ -581,6 +598,8 @@ public class MainActivity extends Activity {
         section(box, "Beenden");
         item(box, "\uD83D\uDED1", "„App beenden“ ganz unten in den Optionen (\u2699) schließt alle Displays und die App – "
                 + "oder „Beenden“ in der Benachrichtigung");
+        item(box, "\uD83D\uDCF2", "App-Symbol lange drücken: „Alles deaktivieren“ (alle Floatings und Vormerkungen aus, ohne die App zu öffnen) "
+                + "sowie direkt „Meine Spiele“, „Spielplan“ oder „Tabellen“");
         item(box, "\u23F0", "Gibt es Vormerkungen, fragt die App: „Alles beenden“ oder „Nur App schließen“ (Vormerkungen bleiben)");
 
         section(box, "Berechtigungen");
@@ -692,6 +711,7 @@ public class MainActivity extends Activity {
 
     // ------------------------------------------------------------------ Changelog
     private static final String[][] CHANGELOG = {
+            {"2.94", "App-Symbol lange drücken: „Alles deaktivieren“, „Meine Spiele“, „Spielplan“, „Tabellen“"},
             {"2.93", "Display-Wecker schon beim Vormerken je Spiel einstellbar (Abfrage beim Vormerken, "
                     + "vorgemerktes Spiel lange drücken), 🔔 in der Liste"},
             {"2.92", "Scorer/Torhüter/Strafen: Name zweizeilig mit Trikotnummer und Team, kein seitliches Schieben mehr – Wischen wechselt wieder sauber die Seite"},

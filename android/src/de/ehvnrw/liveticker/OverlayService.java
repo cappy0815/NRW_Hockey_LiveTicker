@@ -162,6 +162,11 @@ public class OverlayService extends Service {
     /** laufende Floatings fuer die Detailansicht (nur Hauptthread) */
     private static final Map<String, Game> LIVE = new LinkedHashMap<>();
 
+    /** v2.94: Zahl der angezeigten Floatings (für die App-Verknüpfung „Alles deaktivieren“) */
+    static int liveCount() {
+        return LIVE.size();
+    }
+
     static Game liveGame(String id) {
         return id == null ? null : LIVE.get(id);
     }

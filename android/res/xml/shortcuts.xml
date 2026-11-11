@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- v2.94: App-Verknüpfungen (App-Symbol lange drücken) -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="off"
+        android:enabled="true"
+        android:icon="@drawable/ic_sc_off"
+        android:shortcutShortLabel="@string/sc_off_short"
+        android:shortcutLongLabel="@string/sc_off_long">
+        <intent
+            android:action="de.ehvnrw.liveticker.SC_OFF"
+            android:targetPackage="de.ehvnrw.liveticker"
+            android:targetClass="de.ehvnrw.liveticker.ShortcutActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="mine"
+        android:enabled="true"
+        android:icon="@drawable/ic_tab_mine"
+        android:shortcutShortLabel="@string/sc_mine">
+        <intent
+            android:action="de.ehvnrw.liveticker.TAB_MINE"
+            android:targetPackage="de.ehvnrw.liveticker"
+            android:targetClass="de.ehvnrw.liveticker.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="plan"
+        android:enabled="true"
+        android:icon="@drawable/ic_tab_plan"
+        android:shortcutShortLabel="@string/sc_plan">
+        <intent
+            android:action="de.ehvnrw.liveticker.TAB_PLAN"
+            android:targetPackage="de.ehvnrw.liveticker"
+            android:targetClass="de.ehvnrw.liveticker.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="tables"
+        android:enabled="true"
+        android:icon="@drawable/ic_tab_tables"
+        android:shortcutShortLabel="@string/sc_tables">
+        <intent
+            android:action="de.ehvnrw.liveticker.TAB_TABLES"
+            android:targetPackage="de.ehvnrw.liveticker"
+            android:targetClass="de.ehvnrw.liveticker.MainActivity" />
+    </shortcut>
+</shortcuts>

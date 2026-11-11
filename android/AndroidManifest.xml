@@ -23,7 +23,18 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- v2.94: App-Verknüpfungen (App-Symbol lange drücken) -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity>
+
+        <!-- v2.94: unsichtbar, für die App-Verknüpfung „Alles deaktivieren“ -->
+        <activity
+            android:name=".ShortcutActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
         <!-- Display-Wecker: Meldung ueber dem Sperrbildschirm -->
         <activity
