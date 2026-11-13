@@ -24,8 +24,8 @@ final class Referees {
     private static final long CACHE_MS = 30 * 60 * 1000L;
     private static final long RETRY_MS = 5 * 60 * 1000L;
 
-    private static final class Row {
-        String date, time, home, away, hsr, lsr;
+    static final class Row {
+        String date, time, league, home, away, hsr, lsr;
     }
 
     private static List<Row> rows = new ArrayList<>();
@@ -43,13 +43,42 @@ final class Referees {
         if ((rows.isEmpty() || now - loadedAt > CACHE_MS) && now - failedAt > RETRY_MS) load();
         Row r = match(g);
         if (r == null) return "";
-        String txt;
-        if (r.hsr.isEmpty()) txt = "SR " + r.lsr;              // Zwei-Mann-System: beide stehen unter (L)SR
-        else if (r.lsr.isEmpty()) txt = "HSR " + r.hsr;
-        else txt = "HSR " + r.hsr + " · LSR " + r.lsr;
-        if (r.hsr.isEmpty() && r.lsr.isEmpty()) return "";
+        String txt = text(r);
+        if (txt.isEmpty()) return "";
         found.put(g.id, txt);
         return txt;
+    }
+
+    /** „HSR … · LSR …“, „SR …“ (Zwei-Mann-System: beide stehen unter (L)SR) oder "" wenn noch niemand eingeteilt ist */
+    static String text(Row r) {
+        if (r.hsr.isEmpty() && r.lsr.isEmpty()) return "";
+        if (r.hsr.isEmpty()) return "SR " + r.lsr;
+        if (r.lsr.isEmpty()) return "HSR " + r.hsr;
+        return "HSR " + r.hsr + " · LSR " + r.lsr;
+    }
+
+    /**
+     * v2.96: alle Einteilungen der Seite (ca. 12 Tage) für die Schiri-Liste. force = neu laden, sonst 30-Min.-Speicher.
+     * Gibt eine Kopie zurück, leer bei Fehler. Nicht im UI-Thread aufrufen.
+     */
+    static synchronized List<Row> all(boolean force) {
+        long now = System.currentTimeMillis();
+        if (force || rows.isEmpty() || now - loadedAt > CACHE_MS) {
+            if (force || now - failedAt > RETRY_MS) load();
+        }
+        return new ArrayList<>(rows);
+    }
+
+    static synchronized long loadedAt() {
+        return loadedAt;
+    }
+
+    /** v2.96: passendes Spiel aus dem Saisonplan (für den Steckbrief), gleiche Regeln wie die Zuordnung, sonst null */
+    static Game findGame(Row r, List<Game> season) {
+        for (Game g : season)
+            if (r.date.equals(g.dateText) && r.time.equals(g.scheduledTime)
+                    && same(r.home, g.homeName) && same(r.away, g.awayName)) return g;
+        return null;
     }
 
     private static void load() {
@@ -86,14 +115,19 @@ final class Referees {
             Row r = new Row();
             r.date = d.group(3) + "." + d.group(2) + "." + d.group(1);
             r.time = d.group(4);
-            r.home = r.away = r.hsr = r.lsr = "";
+            r.league = r.home = r.away = r.hsr = r.lsr = "";
             Matcher c = CELL.matcher(tr);
             while (c.find()) {
                 String title = c.group(1), val = clean(c.group(2));
                 if (title.equals("Begegnung")) {
                     int colon = val.indexOf(": ");
                     String teams = colon >= 0 ? val.substring(colon + 2) : val;
+                    if (colon >= 0) r.league = val.substring(0, colon).trim();
                     int dash = teams.indexOf(" - ");
+                    if (dash < 0 && teams.endsWith(" -")) { // v2.96: U9/U11 – esrw.de nennt nur den Gastgeber
+                        r.home = teams.substring(0, teams.length() - 2).trim();
+                        continue;
+                    }
                     if (dash < 0) continue;
                     r.home = teams.substring(0, dash).trim();
                     r.away = teams.substring(dash + 3).trim();

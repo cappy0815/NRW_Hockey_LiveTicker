@@ -5,5 +5,8 @@
     <string name="sc_off_long">Alles deaktivieren</string>
     <string name="sc_mine">Meine Spiele</string>
     <string name="sc_plan">Spielplan</string>
+    <!-- v2.96 -->
+    <string name="sc_refs_short">Schiedsrichter</string>
+    <string name="sc_refs_long">Schiedsrichter-Einteilungen</string>
     <string name="sc_tables">Tabellen</string>
 </resources>

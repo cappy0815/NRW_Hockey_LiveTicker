@@ -242,6 +242,16 @@ public class MainActivity extends Activity {
         if (a.endsWith(".TAB_MINE")) selectTab(T_MINE);
         else if (a.endsWith(".TAB_PLAN")) selectTab(T_PLAN);
         else if (a.endsWith(".TAB_TABLES")) selectTab(T_TABLES);
+        else if (a.endsWith(".SHOW_REFS")) { // v2.96: Schiri-Liste über dem Live-Reiter
+            selectTab(T_LIVE);
+            intent.setAction(null);           // nicht erneut öffnen, z. B. nach Drehen
+            ui.post(new Runnable() {
+                @Override
+                public void run() {
+                    RefereesSheet.show(MainActivity.this);
+                }
+            });
+        }
     }
 
     // ------------------------------------------------------------------ Reiter (v2.7)

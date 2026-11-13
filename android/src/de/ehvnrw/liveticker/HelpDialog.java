@@ -75,6 +75,11 @@ final class HelpDialog {
         item(a, box, "☆", "Aufstellung: Stern mit 1, 2 oder 3 vor dem Namen = die drei besten Scorer der Aufstellung "
                 + "(Punkte der Saison in dieser Liga). T/A/SM daneben zählen nur das aktuelle Spiel. Lange Namen: Tabelle seitlich schieben.");
 
+        Ui.section(a, box, "Schiedsrichter");
+        item(a, box, "\uD83E\uDDD1\u200D\u2696\uFE0F", "App-Symbol lange drücken → „Schiedsrichter“: alle Einteilungen von esrw.de (ca. die nächsten 12 Tage) nach Tagen, "
+                + "eigene Teams gelb, Schalter „Nur meine Teams“. Spiele mit › öffnen den Steckbrief. Grün = eingeteilt, grau = noch offen");
+        item(a, box, "\uD83C\uDFD2", "Im Floating (Stufe 3) und im Detailfenster stehen die Schiris des Spiels direkt dabei");
+
         Ui.section(a, box, "Livestream (RED+)");
         item(a, box, "▶", "Hat ein Spiel einen RED+-Stream, steht das RED+-Logo in der Live-, Spielplan- und Meine-Liste – antippen öffnet den Stream. "
                 + "Im Steckbrief und im Floating-Detailfenster öffnet der Knopf „Watch on RED+“ das Spiel im Browser. "
@@ -112,7 +117,7 @@ final class HelpDialog {
                 + "in den Optionen (⚙) ganz unten, in der Benachrichtigung oder am App-Symbol (lange drücken, ohne die App zu öffnen)");
         item(a, box, "🛑", "„App beenden“ (Optionen ganz unten) deaktiviert alles und schließt die App. "
                 + "Gibt es Vormerkungen, fragt die App, ob sie bleiben sollen");
-        item(a, box, "📲", "App-Symbol lange drücken: außerdem direkt „Meine Spiele“, „Spielplan“ oder „Tabellen“");
+        item(a, box, "📲", "App-Symbol lange drücken: außerdem direkt „Meine Spiele“, „Tabellen“ oder „Schiedsrichter“");
 
         Ui.section(a, box, "Optionen (Zahnrad oben)");
         item(a, box, "⏱", "Intervalle für Spielliste und Floating-Display");
@@ -174,6 +179,9 @@ final class HelpDialog {
 
     // ------------------------------------------------------------------ Changelog
     private static final String[][] CHANGELOG = {
+            {"2.96", "App-Symbol lange drücken → „Schiedsrichter“: alle Einteilungen von esrw.de nach Tagen, eigene Teams gelb, "
+                    + "„Nur meine Teams“, Antippen öffnet den Steckbrief\n"
+                    + "„Spielplan“ weicht dafür im Schnellmenü (die meisten Launcher zeigen höchstens 4 Einträge) – bleibt als Reiter unten"},
             {"2.95", "Aufgeräumt: Spiel in der Live-Liste lange drücken öffnet jetzt den Steckbrief (mit Aufstellung, Tabelle, RED+, "
                     + "bei Vormerkungen Display-Wecker)\n"
                     + "Einheitlich „Alles deaktivieren“ (Floatings und Vormerkungen aus) und „App beenden“, beides in den Optionen\n"
