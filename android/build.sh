@@ -3,8 +3,8 @@
 set -euo pipefail
 
 # >>> Version hier pflegen: landet in App und Dateiname <<<
-VERSION_NAME="2.96"
-VERSION_CODE=40
+VERSION_NAME="2.97"
+VERSION_CODE=41
 
 cd "$(dirname "$0")"
 SDK=/tmp/claude-0/sdk

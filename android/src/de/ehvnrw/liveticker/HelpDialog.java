@@ -61,6 +61,9 @@ final class HelpDialog {
         item(a, box, "📅", "„Spielplan“: „Nächste“ = Spiele der nächsten 7 Tage · „Ergebnisse“ = letzte 7 Tage");
         item(a, box, "⭐", "„Meine“: kommende Spiele und letzte Ergebnisse der hervorgehobenen Teams (Optionen → Hervorhebung)");
         item(a, box, "📊", "„Tabellen“: alle Ligen nach Altersklasse, Ligen der eigenen Teams oben – antippen zeigt die Tabelle");
+        item(a, box, "\uD83D\uDD0D", "„Spieler“: Spielersuche nach Nach- und/oder Vorname (z. B. „Müller“ oder „Müller Tim“, Umlaute egal), "
+                + "Altersklasse als Filter. Zeigt je Liga Team, Trikotnummer, Position und Saisonwerte; antippen öffnet die Tabelle der Liga. "
+                + "Gefunden werden alle Spieler, die in der Saison schon eingesetzt wurden. Erstes Suchen lädt die Ligen (alle zusammen ca. 3,5 MB), danach 30 Min. gespeichert");
         item(a, box, "↔", "Nach links/rechts wischen wechselt den Reiter, „Zurück“ führt zur Live-Liste, ↻ lädt neu");
 
         Ui.section(a, box, "Steckbrief");
@@ -179,6 +182,7 @@ final class HelpDialog {
 
     // ------------------------------------------------------------------ Changelog
     private static final String[][] CHANGELOG = {
+            {"2.97", "Neuer Reiter „Spieler“: Spielersuche nach Nach- und Vorname, Filter Altersklasse, Saisonwerte je Liga"},
             {"2.96", "App-Symbol lange drücken → „Schiedsrichter“: alle Einteilungen von esrw.de nach Tagen, eigene Teams gelb, "
                     + "„Nur meine Teams“, Antippen öffnet den Steckbrief\n"
                     + "„Spielplan“ weicht dafür im Schnellmenü (die meisten Launcher zeigen höchstens 4 Einträge) – bleibt als Reiter unten"},

@@ -132,7 +132,7 @@ class TablesPane extends LinearLayout {
     }
 
     /** Reihenfolge der Altersklassen: Senioren, Frauen, U20 … U7, dann Pokal/Freundschaftsspiele/Sonstige */
-    private static int groupRank(String gr) {
+    static int groupRank(String gr) {
         if (gr.equalsIgnoreCase("Senioren")) return 0;
         if (gr.equalsIgnoreCase("Frauen") || gr.equalsIgnoreCase("Damen")) return 1;
         Matcher m = Pattern.compile("^U(\\d+)$").matcher(gr);
@@ -142,7 +142,7 @@ class TablesPane extends LinearLayout {
     }
 
     /** Spielklasse innerhalb der Altersklasse: Regionalliga, Landesliga, Bezirksliga, Rest */
-    private static int levelRank(String s) {
+    static int levelRank(String s) {
         String t = s.toLowerCase();
         if (t.contains("dfel") || t.contains("regionalliga")) return 0;
         if (t.contains("landesliga")) return 1;
@@ -151,7 +151,7 @@ class TablesPane extends LinearLayout {
     }
 
     /** Titel der Liga ohne Altersklasse und Saison: "Regionalliga A · Hauptrunde" */
-    private static String title(Game g, String gr) {
+    static String title(Game g, String gr) {
         String l = g.league.trim().replaceFirst("^NRW\\s*-\\s*", "").trim();
         if (l.startsWith(gr)) l = l.substring(gr.length()).trim();
         String d = GameSheet.divisionClean(g.division);

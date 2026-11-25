@@ -53,12 +53,13 @@ public class MainActivity extends Activity {
     private GameAdapter adapter;
     private boolean loading;
     // v2.7: Reiter unten (Live · Spielplan · Meine · Tabellen), wischen zum Wechseln
-    static final int T_LIVE = 0, T_PLAN = 1, T_MINE = 2, T_TABLES = 3;
-    private final View[] panes = new View[4];
-    private final TextView[] tabBtns = new TextView[4];
+    static final int T_LIVE = 0, T_PLAN = 1, T_MINE = 2, T_TABLES = 3, T_PLAYERS = 4; // v2.97: Spieler
+    private final View[] panes = new View[5];
+    private final TextView[] tabBtns = new TextView[5];
     private int curTab = T_LIVE;
     private SchedulePane planPane, minePane;
     private TablesPane tablesPane;
+    private PlayersPane playersPane;
     private android.view.GestureDetector swipe;
     private final Runnable autoRefresh = new Runnable() {
         @Override
@@ -205,6 +206,8 @@ public class MainActivity extends Activity {
         panes[T_PLAN] = planPane;
         panes[T_MINE] = minePane;
         panes[T_TABLES] = tablesPane;
+        playersPane = new PlayersPane(this);
+        panes[T_PLAYERS] = playersPane;
         for (View v : panes) frame.addView(v, new FrameLayout.LayoutParams(-1, -1));
         outer.addView(frame, new LinearLayout.LayoutParams(-1, 0, 1f));
         outer.addView(tabBar(), new LinearLayout.LayoutParams(-1, -2));
@@ -256,9 +259,9 @@ public class MainActivity extends Activity {
 
     // ------------------------------------------------------------------ Reiter (v2.7)
     // v2.71: Linien-Symbole (Vektor, eingefärbt) statt Emojis, aktiver Reiter mit grüner Pille
-    private static final int[] TAB_ICONS = {R.drawable.ic_tab_live, R.drawable.ic_tab_plan, R.drawable.ic_tab_mine, R.drawable.ic_tab_tables};
-    private static final String[] TAB_NAMES = {"Live", "Spielplan", "Meine", "Tabellen"};
-    private final ImageView[] tabIcons = new ImageView[4];
+    private static final int[] TAB_ICONS = {R.drawable.ic_tab_live, R.drawable.ic_tab_plan, R.drawable.ic_tab_mine, R.drawable.ic_tab_tables, R.drawable.ic_tab_players};
+    private static final String[] TAB_NAMES = {"Live", "Spielplan", "Meine", "Tabellen", "Spieler"};
+    private final ImageView[] tabIcons = new ImageView[5];
 
     private LinearLayout tabBar() {
         LinearLayout bar = new LinearLayout(this);
@@ -268,7 +271,7 @@ public class MainActivity extends Activity {
         bar.addView(line, new LinearLayout.LayoutParams(-1, dp(1)));
         LinearLayout row = new LinearLayout(this);
         row.setBackgroundColor(Color.WHITE);
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 5; i++) {
             final int t = i;
             LinearLayout cell = new LinearLayout(this);
             cell.setOrientation(LinearLayout.VERTICAL);
@@ -302,7 +305,7 @@ public class MainActivity extends Activity {
 
     private void selectTab(int t) {
         curTab = t;
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 5; i++) {
             panes[i].setVisibility(i == t ? View.VISIBLE : View.GONE);
             boolean on = i == t;
             int col = on ? C_GREEN : C_MUTED;
@@ -321,6 +324,7 @@ public class MainActivity extends Activity {
         if (t == T_PLAN) planPane.shown();
         else if (t == T_MINE) minePane.shown();
         else if (t == T_TABLES) tablesPane.shown();
+        else if (t == T_PLAYERS) playersPane.shown();
     }
 
     /** Wischen nach links/rechts wechselt den Reiter (Listen scrollen weiter senkrecht) */
@@ -332,7 +336,7 @@ public class MainActivity extends Activity {
                 float dx = e2.getX() - e1.getX(), dy = e2.getY() - e1.getY();
                 if (Math.abs(dx) < dp(90) || Math.abs(dx) < Math.abs(dy) * 2 || Math.abs(vx) < 500) return false;
                 int t = curTab + (dx < 0 ? 1 : -1);
-                if (t < 0 || t > 3) return false;
+                if (t < 0 || t > 4) return false;
                 selectTab(t);
                 return true;
             }
