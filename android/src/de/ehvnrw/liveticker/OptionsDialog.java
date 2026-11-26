@@ -125,6 +125,35 @@ final class OptionsDialog {
         etFav.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         box.addView(etFav, new LinearLayout.LayoutParams(-1, -2));
         box.addView(Ui.text(m, "mehrere Begriffe mit Komma trennen, z. B.  Neuss, Moers", 12, Ui.MUTED, false));
+        // v2.98: statt des ganzen Vereins nur einzelne Teams (Altersklasse + Team)
+        final Button btTeams = new Button(m);
+        final Runnable teamsLabel = new Runnable() {
+            @Override
+            public void run() {
+                int n = Prefs.favTeams(m).size();
+                btTeams.setText(n == 0 ? "Teams auswählen …" : "Teams auswählen (" + n + " gewählt) …");
+            }
+        };
+        teamsLabel.run();
+        Ui.outline(btTeams, Ui.GREEN);
+        btTeams.setSingleLine(true);
+        btTeams.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                TeamPicker.show(m, etFav.getText().toString().trim(), new Runnable() {
+                    @Override
+                    public void run() {
+                        teamsLabel.run();
+                        m.optionsSaved();
+                    }
+                });
+            }
+        });
+        LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(-1, -2);
+        tl.topMargin = Ui.dp(m, 6);
+        box.addView(btTeams, tl);
+        box.addView(Ui.text(m, "Ohne Auswahl zählen alle Teams mit dem Suchbegriff. Mit Auswahl nur die angehakten – "
+                + "in den Listen, unter „Meine“, in Tabellen und Spielersuche. Die Schiri-Liste nutzt immer den Suchbegriff.", 12, Ui.MUTED, false));
 
         Ui.section(m, box, "Livestream");
         final Switch swStream = Ui.toggle(m, "RED+-Link anzeigen, wenn vorhanden", Prefs.streamOn(m));

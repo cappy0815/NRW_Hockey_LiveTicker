@@ -132,8 +132,43 @@ public final class Prefs {
     }
 
     /** true, wenn einer der Teamnamen einen der Suchbegriffe enthaelt (Gross/Klein egal, Begriffe mit Komma). */
+    /**
+     * Hervorhebung eines Spiels. v2.98: Sind Teams ausgewählt („Teams auswählen“ in den Optionen), zählen nur diese –
+     * je Altersklasse + Teamname, damit die Auswahl auch neue Runden (Ergänzungs-/Platzierungsrunde) übersteht.
+     * Ohne Auswahl wie bisher über die Suchbegriffe im Teamnamen.
+     */
     public static boolean isFav(Context c, Game g) {
+        if (!favOn(c)) return false;
+        if (hasFavTeams(c)) {
+            String gr = TablesPane.group(g);
+            return isFavTeam(c, gr, g.homeName) || isFavTeam(c, gr, g.awayName);
+        }
         return isFavName(c, g.homeName + "|" + g.awayName);
+    }
+
+    /** v2.98: ausgewählte Teams als „Altersklasse|Teamname“ */
+    public static java.util.Set<String> favTeams(Context c) {
+        return new java.util.HashSet<>(sp(c).getStringSet("favTeams", new java.util.HashSet<String>()));
+    }
+
+    public static void setFavTeams(Context c, java.util.Set<String> keys) {
+        sp(c).edit().putStringSet("favTeams", new java.util.HashSet<>(keys)).apply();
+    }
+
+    public static boolean hasFavTeams(Context c) {
+        return !sp(c).getStringSet("favTeams", java.util.Collections.<String>emptySet()).isEmpty();
+    }
+
+    static String teamKey(String group, String team) {
+        return group + "|" + team;
+    }
+
+    /** Team in einer Altersklasse hervorgehoben? Mit Auswahl: genau dieses Team; ohne: Suchbegriffe */
+    public static boolean isFavTeam(Context c, String group, String team) {
+        if (!favOn(c) || team == null || team.isEmpty()) return false;
+        if (hasFavTeams(c))
+            return sp(c).getStringSet("favTeams", java.util.Collections.<String>emptySet()).contains(teamKey(group, team));
+        return isFavName(c, team);
     }
 
     public static boolean isFavName(Context c, String text) {

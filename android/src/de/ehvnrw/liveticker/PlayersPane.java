@@ -338,7 +338,7 @@ class PlayersPane extends LinearLayout {
                     e.row = r;
                     e.goalie = t == 1;
                     p.entries.add(e);
-                    if (Prefs.isFavName(a, teamName(d, r.optString("teamShortname", "")))) p.fav = true;
+                    if (Prefs.isFavTeam(a, d.group, teamName(d, r.optString("teamShortname", "")))) p.fav = true;
                 }
             }
         }

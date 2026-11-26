@@ -51,14 +51,14 @@ final class HelpDialog {
                 + "Beim Vormerken fragt die App nach dem Display-Wecker. In den Optionen alternativ: sofort, blass bis zum Bully");
         item(a, box, "📋", "Lange drücken: Steckbrief des Spiels (wie im Spielplan) – mit Aufstellung, Tabelle, Halle und RED+; "
                 + "bei vorgemerkten Spielen auch der Display-Wecker");
-        item(a, box, "🟨", "Gelb hinterlegt: hervorgehobene Spiele (Standard: Neuss)");
+        item(a, box, "🟨", "Gelb hinterlegt: hervorgehobene Spiele – alle Teams mit dem Suchbegriff (Standard: Neuss) oder nur die in den Optionen angehakten Teams");
         item(a, box, "↻", "Lädt die Liste sofort neu; sonst automatisch, solange die App offen ist");
         item(a, box, "🌱", "Sparsam: abgefragt werden nur Ligen, die heute spielen (Statuszeile z. B. „5/28 Ligen“); den Spielplan lädt die App höchstens alle 30 Min.");
         item(a, box, "❓", "Läuft heute nichts mehr, führt „Nächste Spiele anzeigen“ in den Spielplan");
 
         Ui.section(a, box, "Reiter unten");
         item(a, box, "🏒", "„Live“: die heutige Spielliste");
-        item(a, box, "📅", "„Spielplan“: „Nächste“ = Spiele der nächsten 7 Tage · „Ergebnisse“ = letzte 7 Tage");
+        item(a, box, "📅", "„Spielplan“: „Nächste“ = Spiele der nächsten 7 Tage · „Ergebnisse“ = letzte 7 Tage · „Schiris“ = Schiedsrichter-Einteilungen");
         item(a, box, "⭐", "„Meine“: kommende Spiele und letzte Ergebnisse der hervorgehobenen Teams (Optionen → Hervorhebung)");
         item(a, box, "📊", "„Tabellen“: alle Ligen nach Altersklasse, Ligen der eigenen Teams oben – antippen zeigt die Tabelle");
         item(a, box, "\uD83D\uDD0D", "„Spieler“: Spielersuche nach Nach- und/oder Vorname (z. B. „Müller“ oder „Müller Tim“, Umlaute egal), "
@@ -79,7 +79,7 @@ final class HelpDialog {
                 + "(Punkte der Saison in dieser Liga). T/A/SM daneben zählen nur das aktuelle Spiel. Lange Namen: Tabelle seitlich schieben.");
 
         Ui.section(a, box, "Schiedsrichter");
-        item(a, box, "\uD83E\uDDD1\u200D\u2696\uFE0F", "App-Symbol lange drücken → „Schiedsrichter“: alle Einteilungen von esrw.de (ca. die nächsten 12 Tage) nach Tagen, "
+        item(a, box, "\uD83E\uDDD1\u200D\u2696\uFE0F", "Spielplan › „Schiris“ oder App-Symbol lange drücken → „Schiedsrichter“: alle Einteilungen von esrw.de (ca. die nächsten 12 Tage) nach Tagen, "
                 + "eigene Teams gelb, Schalter „Nur meine Teams“. Spiele mit › öffnen den Steckbrief. Grün = eingeteilt, grau = noch offen");
         item(a, box, "\uD83C\uDFD2", "Im Floating (Stufe 3) und im Detailfenster stehen die Schiris des Spiels direkt dabei");
 
@@ -125,7 +125,8 @@ final class HelpDialog {
         Ui.section(a, box, "Optionen (Zahnrad oben)");
         item(a, box, "⏱", "Intervalle für Spielliste und Floating-Display");
         item(a, box, "📳", "Vibration bei Tor und bei Spielbeginn");
-        item(a, box, "🔎", "Hervorhebung: Suchbegriffe für Teamnamen, mehrere mit Komma");
+        item(a, box, "🔎", "Hervorhebung: Suchbegriffe für Teamnamen, mehrere mit Komma. „Teams auswählen …“ zeigt alle Teams mit dem Begriff nach Altersklasse – "
+                + "angehakt = nur diese gelb und unter „Meine“ (z. B. nur U13 und U15 statt des ganzen Vereins). Die Schiri-Liste nutzt immer den Suchbegriff");
 
         Ui.section(a, box, "Berechtigungen");
         item(a, box, "🪟", "„Über anderen Apps einblenden“ – nötig für das Floating-Display");
@@ -164,7 +165,22 @@ final class HelpDialog {
         credits.setGravity(Gravity.CENTER);
         credits.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.ITALIC));
         box.addView(credits, new LinearLayout.LayoutParams(-1, -2));
-        TextView more = Ui.text(a, "Mehr Projekte und Downloads: cappy0815.github.io", 12, Ui.MUTED, false);
+        // v2.98: Link anklickbar (öffnet die Projektseite im Browser)
+        TextView more = Ui.text(a, "Mehr Projekte und Downloads: ", 12, Ui.MUTED, false);
+        android.text.SpannableString link = new android.text.SpannableString("cappy0815.github.io");
+        link.setSpan(new android.text.style.UnderlineSpan(), 0, link.length(), 0);
+        link.setSpan(new android.text.style.ForegroundColorSpan(Ui.GREEN), 0, link.length(), 0);
+        more.append(link);
+        more.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try {
+                    a.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW,
+                            android.net.Uri.parse("https://cappy0815.github.io/")));
+                } catch (Exception ignored) {
+                }
+            }
+        });
         more.setGravity(Gravity.CENTER);
         box.addView(more, new LinearLayout.LayoutParams(-1, -2));
 
@@ -182,6 +198,9 @@ final class HelpDialog {
 
     // ------------------------------------------------------------------ Changelog
     private static final String[][] CHANGELOG = {
+            {"2.98", "Optionen › Hervorhebung › „Teams auswählen“: nur einzelne Teams hervorheben (z. B. U13 und U15 statt des ganzen Vereins) – gilt für Listen, „Meine“, Tabellen und Spielersuche\n"
+                    + "Spielplan: dritter Umschalter „Schiris“ mit den Schiedsrichter-Einteilungen\n"
+                    + "Hilfe: Link zur Projektseite anklickbar"},
             {"2.97", "Neuer Reiter „Spieler“: Spielersuche nach Nach- und Vorname, Filter Altersklasse, Saisonwerte je Liga"},
             {"2.96", "App-Symbol lange drücken → „Schiedsrichter“: alle Einteilungen von esrw.de nach Tagen, eigene Teams gelb, "
                     + "„Nur meine Teams“, Antippen öffnet den Steckbrief\n"

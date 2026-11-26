@@ -559,7 +559,7 @@ final class GameSheet {
                             return;
                         }
                         state.setVisibility(View.GONE);
-                        fillStatPage(a, page, table, fRows, teamNames);
+                        fillStatPage(a, page, table, fRows, teamNames, TablesPane.groupOfDivision(divisionId));
                         String n = page == 0 ? "Team = Kürzel wie in Liste und Floating · S / N inklusive Verlängerung und Penaltyschießen"
                                 : page == 1 ? "Sp = Spiele · T = Tore · A = Assists · P = Punkte · SM = Strafminuten · Top 50 der Liga"
                                 : page == 2 ? "Sp = Spiele · GT = Gegentore · Ø = Gegentore je Spiel · Sv% = Fangquote (nur, wo Schüsse erfasst sind)"
@@ -573,7 +573,7 @@ final class GameSheet {
         }).start();
     }
 
-    private static void fillStatPage(Activity a, int page, TableLayout table, List<JSONObject> rows, java.util.Map<String, String> teamNames) {
+    private static void fillStatPage(Activity a, int page, TableLayout table, List<JSONObject> rows, java.util.Map<String, String> teamNames, String group) {
         if (page == 0) {
             table.addView(row(a, true, false, null, "#", "Team", "Sp", "S", "N", "Tore", "Pkt"));
             for (JSONObject r : rows) {
@@ -581,7 +581,7 @@ final class GameSheet {
                 String shortName = r.optString("teamShortname", team);
                 int s = r.optInt("gamesWon") + r.optInt("gamesWonInOt");
                 int n = r.optInt("gamesLost") + r.optInt("gamesLostInOt");
-                table.addView(row(a, false, Prefs.isFavName(a, team), Api.logoUrl(r.optString("id", "")),
+                table.addView(row(a, false, Prefs.isFavTeam(a, group, team), Api.logoUrl(r.optString("id", "")),
                         r.optString("tableRank", ""), shortName.isEmpty() ? team : shortName, r.optString("gamesPlayed", ""),
                         String.valueOf(s), String.valueOf(n),
                         r.optInt("goalsFor") + ":" + r.optInt("goalsAgainst"),
@@ -597,7 +597,7 @@ final class GameSheet {
             JSONObject r = rows.get(i);
             String teamId = r.optString("teamId", "");
             String longName = teamNames.get(teamId);
-            boolean fav = longName != null && Prefs.isFavName(a, longName);
+            boolean fav = longName != null && Prefs.isFavTeam(a, group, longName);
             String name = r.optString("playerLastname", "") + " " + r.optString("playerFirstname", "").trim();
             String nr = r.optString("playerJerseyNr", "").trim();
             String who = name.trim() + "\n" + (nr.isEmpty() || nr.equals("0") ? "" : "#" + nr + " · ") + r.optString("teamShortname", "");

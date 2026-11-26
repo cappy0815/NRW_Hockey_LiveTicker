@@ -131,6 +131,12 @@ class TablesPane extends LinearLayout {
         return l.isEmpty() ? "Sonstige" : l;
     }
 
+    /** v2.98: Altersklasse einer Liga aus dem Saisonplan-Speicher ("" wenn unbekannt) */
+    static String groupOfDivision(String divisionId) {
+        for (Game g : Api.seasonCached()) if (divisionId.equals(g.divisionId)) return group(g);
+        return "";
+    }
+
     /** Reihenfolge der Altersklassen: Senioren, Frauen, U20 … U7, dann Pokal/Freundschaftsspiele/Sonstige */
     static int groupRank(String gr) {
         if (gr.equalsIgnoreCase("Senioren")) return 0;

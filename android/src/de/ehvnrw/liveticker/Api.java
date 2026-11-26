@@ -172,6 +172,11 @@ public final class Api {
         return all;
     }
 
+    /** v2.98: Saisonplan aus dem Speicher (ohne Abfrage, ggf. leer) */
+    static List<Game> seasonCached() {
+        return seasonCache;
+    }
+
     /** v2.8: fehlt der Stream-Link in der Live-Abfrage, aus dem Saisonplan-Speicher ergänzen (keine Abfrage) */
     static void streamsFromSeason(List<Game> games) {
         List<Game> s = seasonCache;

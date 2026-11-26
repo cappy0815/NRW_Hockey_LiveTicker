@@ -28,7 +28,7 @@ import java.util.List;
  */
 class SchedulePane extends LinearLayout {
 
-    static final int TAB_NEXT = 0, TAB_RESULTS = 1, TAB_MINE = 2;
+    static final int TAB_NEXT = 0, TAB_RESULTS = 1, TAB_REFS = 2, TAB_MINE = 3; // v2.98: TAB_REFS = Umschalter „Schiris“
     private static final long DAY = 24L * 60 * 60 * 1000;
     private static final int C_TEXT = Ui.TEXT;
     private static final int C_MUTED = Ui.MUTED;
@@ -39,7 +39,10 @@ class SchedulePane extends LinearLayout {
     private final List<Object> items = new ArrayList<>(); // String = Ueberschrift, Game = Spiel
     private List<Game> season = new ArrayList<>();
     private int tab;
-    private final Button[] tabs = new Button[2];
+    private final Button[] tabs = new Button[3];
+    private LinearLayout bar;           // Statuszeile + ↻ (Nächste/Ergebnisse/Meine)
+    private ListView list;
+    private View refsPanel;             // v2.98: Umschalter „Schiris“
     private final TextView status;
     private final Adapter adapter;
     private final Button reload;
@@ -56,8 +59,8 @@ class SchedulePane extends LinearLayout {
 
         if (!mine) {
             LinearLayout seg = new LinearLayout(a);
-            String[] names = {"Nächste", "Ergebnisse"};
-            for (int i = 0; i < 2; i++) {
+            String[] names = {"Nächste", "Ergebnisse", "Schiris"};
+            for (int i = 0; i < 3; i++) {
                 final int t = i;
                 tabs[i] = new Button(a);
                 tabs[i].setText(names[i]);
@@ -76,7 +79,7 @@ class SchedulePane extends LinearLayout {
             styleTabs();
         }
 
-        LinearLayout bar = new LinearLayout(a);
+        bar = new LinearLayout(a);
         bar.setGravity(Gravity.CENTER_VERTICAL);
         status = new TextView(a);
         status.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
@@ -98,7 +101,7 @@ class SchedulePane extends LinearLayout {
         bar.addView(reload, new LinearLayout.LayoutParams(-2, -2));
         addView(bar);
 
-        ListView list = new ListView(a);
+        list = new ListView(a);
         adapter = new Adapter();
         list.setAdapter(adapter);
         list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -113,6 +116,7 @@ class SchedulePane extends LinearLayout {
 
     /** Reiter wird sichtbar: beim ersten Mal laden (Saisonplan meist schon im Speicher), sonst neu aufbauen */
     void shown() {
+        if (tab == TAB_REFS) return;   // Schiri-Liste lädt selbst (eigenes ↻)
         if (!loaded) load(false);
         else build();
     }
@@ -122,11 +126,23 @@ class SchedulePane extends LinearLayout {
         if (mine) return;
         tab = t;
         styleTabs();
+        boolean refs = t == TAB_REFS;
+        bar.setVisibility(refs ? GONE : VISIBLE);
+        list.setVisibility(refs ? GONE : VISIBLE);
+        if (refs) {
+            if (refsPanel == null) {   // erst beim ersten Antippen esrw.de laden
+                refsPanel = RefereesSheet.panel(a, true);
+                addView(refsPanel, new LinearLayout.LayoutParams(-1, 0, 1f));
+            }
+            refsPanel.setVisibility(VISIBLE);
+            return;
+        }
+        if (refsPanel != null) refsPanel.setVisibility(GONE);
         if (loaded) build();
     }
 
     private void styleTabs() {
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < 3; i++) {
             if (i == tab) Ui.pill(tabs[i], Ui.GREEN);
             else Ui.outline(tabs[i], Ui.DARK);
             tabs[i].setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);

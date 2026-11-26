@@ -32,14 +32,27 @@ final class RefereesSheet {
     private RefereesSheet() {
     }
 
+    /** Fenster (App-Symbol → „Schiedsrichter“) */
     static void show(final Activity a) {
         LinearLayout outer = new LinearLayout(a);
         outer.setOrientation(LinearLayout.VERTICAL);
         outer.setPadding(Ui.dp(a, 20), Ui.dp(a, 18), Ui.dp(a, 20), 0);
         outer.addView(Ui.text(a, "Schiedsrichter-Einteilungen", 18, Ui.TEXT, true));
+        outer.addView(panel(a, false), new LinearLayout.LayoutParams(-1, -2));
+        Ui.dialog(new AlertDialog.Builder(a).setView(outer).setPositiveButton("Schließen", null).show());
+    }
+
+    /**
+     * v2.98: Inhalt der Schiri-Liste – im Fenster oder eingebettet im Spielplan (Umschalter „Schiris“).
+     * embedded = true: ohne Farbstreifen, Liste füllt die restliche Höhe.
+     */
+    static View panel(final Activity a, boolean embedded) {
+        LinearLayout outer = new LinearLayout(a);
+        outer.setOrientation(LinearLayout.VERTICAL);
         final TextView sub = Ui.text(a, "Lade esrw.de …", 12, Ui.MUTED, false);
+        sub.setPadding(Ui.dp(a, 4), embedded ? Ui.dp(a, 6) : 0, Ui.dp(a, 4), 0);
         outer.addView(sub);
-        Ui.stripe(a, outer, 10);
+        if (!embedded) Ui.stripe(a, outer, 10);
 
         LinearLayout bar = new LinearLayout(a);
         bar.setGravity(android.view.Gravity.CENTER_VERTICAL);
@@ -47,7 +60,7 @@ final class RefereesSheet {
         sw.setEnabled(Prefs.favOn(a));
         bar.addView(sw, new LinearLayout.LayoutParams(0, -2, 1f));
         final Button reload = new Button(a);
-        reload.setText("↻");
+        reload.setText("\u21BB");
         Ui.outline(reload, Ui.DARK);
         reload.setMinWidth(0);
         reload.setMinimumWidth(0);
@@ -61,17 +74,15 @@ final class RefereesSheet {
         list.setPadding(0, 0, 0, Ui.dp(a, 8));
         ScrollView sv = new ScrollView(a);
         sv.addView(list);
-        outer.addView(Ui.withScrollHint(sv), new LinearLayout.LayoutParams(-1, -2));
-
-        final AlertDialog dlg = new AlertDialog.Builder(a).setView(outer).setPositiveButton("Schließen", null).show();
-        Ui.dialog(dlg);
+        if (embedded) outer.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1f));
+        else outer.addView(Ui.withScrollHint(sv), new LinearLayout.LayoutParams(-1, -2));
 
         final List<Referees.Row>[] rows = new List[]{new ArrayList<Referees.Row>()};
         final List<Game>[] season = new List[]{new ArrayList<Game>()};
         final Runnable fill = new Runnable() {
             @Override
             public void run() {
-                fill(a, dlg, list, rows[0], season[0], sw.isChecked());
+                fill(a, null, list, rows[0], season[0], sw.isChecked());
             }
         };
         sw.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -81,20 +92,14 @@ final class RefereesSheet {
                 fill.run();
             }
         });
-        final Runnable[] load = new Runnable[1];
-        load[0] = new Runnable() {
-            @Override
-            public void run() {
-                load(a, sub, reload, rows, season, fill, false);
-            }
-        };
         reload.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 load(a, sub, reload, rows, season, fill, true);
             }
         });
-        load[0].run();
+        load(a, sub, reload, rows, season, fill, false);
+        return outer;
     }
 
     private static void load(final Activity a, final TextView sub, final Button reload, final List<Referees.Row>[] rows,
