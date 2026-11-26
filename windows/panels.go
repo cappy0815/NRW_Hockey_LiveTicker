@@ -148,6 +148,9 @@ func paintPanel(p *panel) func(c *canvas, w, h int) {
 			paintTable(c, p, w, h)
 		case "lineup":
 			paintLineup(c, p, w, h)
+		case "teams":
+			paintTeams(c, p, w, h)
+			drawBtns(c, p)
 		case "opt":
 			paintOptions(c, p, w, h)
 		case "help", "log", "hint", "upd":
@@ -174,6 +177,8 @@ func panelHit(p *panel, x, y int) string {
 		return schedHit(p, x, y)
 	case "sheet":
 		return sheetHit(p, x, y)
+	case "teams":
+		return teamsHit(p, x, y)
 	case "opt":
 		return optHit(p, x, y)
 	case "table", "lineup", "help", "log", "hint", "upd":
@@ -267,6 +272,8 @@ func panelClick(p *panel, hv string, dbl bool) {
 		} else if hv == "btn1" {
 			panelClose(p)
 		}
+	case "teams":
+		teamsClick(p, hv)
 	case "opt":
 		optClick(p, hv)
 	case "help":
@@ -306,6 +313,8 @@ func panelBtns(p *panel) []btn {
 		return []btn{{"Aktualisieren", cDark2}, {"Schließen", cGreen}}
 	case "help":
 		return []btn{{"Changelog", cDark2}, {"Alles klar", cGreen}}
+	case "teams":
+		return []btn{{"Übernehmen", cGreen}, {"Keins", cDark2}, {"Abbrechen", cDark2}}
 	case "hint":
 		return []btn{{"Verstanden", cGreen}}
 	case "upd":
@@ -368,28 +377,34 @@ func schedBuild() {
 	mu.Unlock()
 	schedLoaded = len(all) > 0
 	schedSel = -1
-	if schedTab == 2 && favRe == nil {
+	if schedTab == 3 && !favAny() {
 		schedList = nil
-		schedStatus = "Keine Teams hervorgehoben – Begriffe in der INI unter „HervorhebenBegriffe“ (Optionen folgen in Etappe 4)."
+		schedStatus = "Keine Teams hervorgehoben – Begriffe unter Optionen › Hervorhebung eintragen oder einzelne Teams wählen."
 		invalidate(p.hwnd)
 		return
 	}
 	var n int
-	schedList, n = schedRows(all, schedTab, func(s string) bool { return favOn && favRe != nil && favRe.MatchString(s) })
+	if schedTab == 2 {
+		schedList, n = refRows(all, refsMine)
+	} else {
+		schedList, n = schedRows(all, schedTab, sFav)
+	}
 	switch schedTab {
 	case 0:
 		schedStatus = fmt.Sprintf("%d Spiele in den nächsten 7 Tagen", n)
 	case 1:
 		schedStatus = fmt.Sprintf("%d Ergebnisse der letzten 7 Tage", n)
 	case 2:
-		schedStatus = "„" + favTerms + "“: kommende Spiele und letzte Ergebnisse"
+		schedStatus = refsStatus(n)
 	case 3:
+		schedStatus = favStatus()
+	case 4:
 		schedStatus = fmt.Sprintf("%d Ligen · Klick zeigt die Tabelle", n)
 	}
-	if !schedLoaded {
+	if !schedLoaded && schedTab != 2 {
 		schedStatus = "Lade Spielplan aller Ligen …"
 	}
-	if schedTab != 3 {
+	if schedTab != 2 && schedTab != 4 {
 		schedStatus += " · Doppelklick = Steckbrief"
 	}
 	p.contentH = len(schedList) * sRowH
@@ -399,7 +414,7 @@ func schedBuild() {
 	invalidate(p.hwnd)
 }
 
-var schedTabs = []string{"Nächste", "Ergebnisse", "Meine Spiele", "Tabellen"}
+var schedTabs = []string{"Nächste", "Ergebnisse", "Schiris", "Meine Spiele", "Tabellen"}
 
 func paintSched(c *canvas, p *panel, w, h int) {
 	for i, t := range schedTabs {
@@ -407,10 +422,19 @@ func paintSched(c *canvas, p *panel, w, h int) {
 		if i == schedTab {
 			col = cGreen
 		}
-		c.pill(20+i*140, 58, 130, 30, t, col, p.hover == "tab"+strconv.Itoa(i))
+		c.pill(20+i*128, 58, 120, 30, t, col, p.hover == "tab"+strconv.Itoa(i))
 	}
 	c.pill(w-150, 58, 130, 30, "Aktualisieren", cDark2, p.hover == "reload")
-	c.line(22, 92, w-44, 20, schedStatus, ui(8.5, false), cGreyTxt, DT_LEFT)
+	statusW := w - 44
+	if schedTab == 2 {
+		statusW = w - 200
+		mc := uint32(cDark2)
+		if refsMine {
+			mc = cGreen
+		}
+		c.pill(w-170, 90, 150, 24, "Nur meine Teams", mc, p.hover == "mine")
+	}
+	c.line(22, 92, statusW, 20, schedStatus, ui(8.5, false), cGreyTxt, DT_LEFT)
 	for i, r := range schedList {
 		y := p.viewTop + i*sRowH - p.scroll
 		if y < p.viewTop || y+sRowH > p.viewTop+p.viewH {
@@ -424,6 +448,25 @@ func paintSched(c *canvas, p *panel, w, h int) {
 		case 2:
 			c.round(12, y+2, w-24, sRowH-4, 6, cRed)
 			c.line(24, y, w-48, sRowH, r.text, ui(8.5, true), cWhite, DT_LEFT)
+			continue
+		case 4: // Schiri-Reiter
+			bg := uint32(cWhite)
+			switch {
+			case i == schedSel:
+				bg = cSel
+			case r.fav:
+				bg = cFav
+			case p.hover == "rrow"+strconv.Itoa(i):
+				bg = cHover
+			}
+			c.round(12, y+2, w-24, sRowH-4, 6, bg)
+			c.line(22, y, 56, sRowH, r.tm, ui(8.5, true), cGreen, DT_LEFT)
+			c.line(80, y, w-440, sRowH, r.text, ui(9, r.fav), cDark, DT_LEFT)
+			rc := uint32(cGreyTxt)
+			if strings.HasPrefix(r.sub, "HSR") {
+				rc = cGreen
+			}
+			c.line(w-356, y, 330, sRowH, r.sub, ui(8, false), rc, DT_RIGHT)
 			continue
 		case 3:
 			bg := uint32(cWhite)
@@ -447,7 +490,7 @@ func paintSched(c *canvas, p *panel, w, h int) {
 		switch {
 		case i == schedSel:
 			bg = cSel
-		case favOn && favRe != nil && favRe.MatchString(g.home+"|"+g.away):
+		case sFav(g):
 			bg = cFav
 		case p.hover == "row"+strconv.Itoa(i):
 			bg = cHover
@@ -494,13 +537,16 @@ func paintSched(c *canvas, p *panel, w, h int) {
 func schedHit(p *panel, x, y int) string {
 	if y >= 58 && y < 88 {
 		for i := range schedTabs {
-			if x >= 20+i*140 && x < 150+i*140 {
+			if x >= 20+i*128 && x < 140+i*128 {
 				return "tab" + strconv.Itoa(i)
 			}
 		}
 		if x >= p.w-150 && x < p.w-20 {
 			return "reload"
 		}
+	}
+	if schedTab == 2 && y >= 90 && y < 114 && x >= p.w-150 && x < p.w-20 {
+		return "mine"
 	}
 	if y >= p.viewTop && y < p.viewTop+p.viewH {
 		i := (y - p.viewTop + p.scroll) / sRowH
@@ -513,6 +559,9 @@ func schedHit(p *panel, x, y int) string {
 		if i < len(schedList) && schedList[i].kind == 3 {
 			return "lig" + strconv.Itoa(i)
 		}
+		if i < len(schedList) && schedList[i].kind == 4 {
+			return "rrow" + strconv.Itoa(i)
+		}
 	}
 	return ""
 }
@@ -523,6 +572,21 @@ func schedClick(p *panel, hv string, dbl bool) {
 		schedTab, _ = strconv.Atoi(hv[3:])
 		p.scroll = 0
 		schedBuild()
+		if schedTab == 2 {
+			refsAsync(false)
+		}
+	case hv == "mine":
+		refsMine = !refsMine
+		p.scroll = 0
+		schedBuild()
+	case strings.HasPrefix(hv, "rrow"):
+		if i, err := strconv.Atoi(hv[4:]); err == nil && i < len(schedList) {
+			schedSel = i
+			if g := schedList[i].g; dbl && g != nil {
+				c := *g
+				sheetOpen(&c)
+			}
+		}
 	case strings.HasPrefix(hv, "redS"):
 		if i, err := strconv.Atoi(hv[4:]); err == nil && i < len(schedList) && schedList[i].g != nil {
 			if u := schedList[i].g.redURL; strings.HasPrefix(u, "https://redirect.red.sport/") {
@@ -530,6 +594,11 @@ func schedClick(p *panel, hv string, dbl bool) {
 			}
 		}
 	case hv == "reload":
+		if schedTab == 2 {
+			schedStatus = "Lade esrw.de …"
+			refsAsync(true)
+			return
+		}
 		schedStatus = "Lade Spielplan aller Ligen …"
 		startWork(false, true)
 	case strings.HasPrefix(hv, "lig"):
@@ -805,6 +874,15 @@ func tableOpen(div, sub string) {
 	p := panelOpen("table", "Tabelle", 600, 560, optOnTop)
 	p.viewTop, p.viewH = 104, 560-104-80
 	tableData, tableNote, tableSub = nil, "Lade Tabelle …", sub
+	tableGrp = ""
+	mu.Lock()
+	for i := range schedAll {
+		if schedAll[i].div == div {
+			tableGrp = teamGroupOf(schedAll[i].league)
+			break
+		}
+	}
+	mu.Unlock()
 	go func() {
 		d, err := apiGet("Standings", "divisionId="+div, false)
 		var st []standing
@@ -844,7 +922,7 @@ func paintTable(c *canvas, p *panel, w, h int) {
 		if i%2 == 1 {
 			bg = 0xF7F8FA
 		}
-		if favOn && favRe != nil && favRe.MatchString(s.team) {
+		if favHit(tableGrp, s.team) {
 			bg = cFav
 		}
 		c.round(12, y+1, w-24, tRowH-2, 6, bg)
@@ -946,6 +1024,12 @@ func paintLineup(c *canvas, p *panel, w, h int) {
 
 // ---------------------------------------------------------------- Ergebnisse aus den Arbeits-Threads
 func panelsApply(kind uintptr) {
+	if kind == 3 { // Schiedsrichter-Einteilung neu gelesen
+		if panels["sched"] != nil {
+			schedBuild()
+		}
+		return
+	}
 	mu.Lock()
 	st, code, lu, luErr := pendTable, pendTOk, pendLu, pendLuErr
 	mu.Unlock()

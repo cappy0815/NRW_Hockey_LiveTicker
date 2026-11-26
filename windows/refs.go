@@ -23,7 +23,8 @@ type refInfo struct{ hsr, lsr string } // leer = noch nicht eingetragen
 // Stand der Tabelle: alle Einteilungen, plus Zeitraum, den die Seite abdeckt
 type refData struct {
 	rows     map[string]refInfo
-	min, max string // ISO-Datum jjjj-mm-tt
+	list     []refEntry // Einteilungen in Reihenfolge der Seite
+	min, max string     // ISO-Datum jjjj-mm-tt
 }
 
 var (
@@ -80,7 +81,9 @@ func parseRefs(page string) refData {
 			continue
 		}
 		paar := plainText(bg[1])
+		league := ""
 		if i := strings.Index(paar, ": "); i >= 0 {
+			league = paar[:i]
 			paar = paar[i+2:] // Liga-Präfix weg
 		}
 		home, away, ok := strings.Cut(paar, " - ")
@@ -96,6 +99,7 @@ func parseRefs(page string) refData {
 			inf.lsr = plainText(m[1])
 		}
 		d.rows[refKey(dt[1], dt[2], home, away)] = inf
+		d.list = append(d.list, refEntry{dt[1], dt[2], league, home, away, inf})
 		if d.min == "" || dt[1] < d.min {
 			d.min = dt[1]
 		}

@@ -17,7 +17,7 @@ import (
 	"unsafe"
 )
 
-const appVersion = "3.5"
+const appVersion = "3.6"
 
 const disclaimer = "Inoffizielles, privates Tool – es besteht keine Verbindung zum Eishockeyverband NRW (EHV NRW) oder zu hockeydata.net.\r\n\r\n" +
 	"Angezeigt werden ausschließlich öffentlich zugängliche Daten, wie sie auch auf ehv-nrw.de und esrw.de zu sehen sind.\r\n\r\n" +
@@ -65,6 +65,7 @@ func optionsLoad() {
 	favOn = on("Hervorheben", "1")
 	favTerms = rd("HervorhebenBegriffe", "Neuss")
 	favRe = favRegex(favTerms)
+	favTeams = parseTeamKeys(rd("HervorhebenTeams", ""))
 	optOnTop = on("Vordergrund", "1")
 	optEvDefault = on("EreignisseAufgeklappt", "0")
 	optSndTor, optSndStrafe, optSndDrittel = on("TonTor", "1"), on("TonStrafe", "1"), on("TonDrittel", "1")
@@ -76,7 +77,7 @@ func optionsLoad() {
 	optRedPlus = on("RedPlusButton", "1")
 }
 
-func isFav(g game) bool { return favOn && favRe != nil && favRe.MatchString(g.home+"|"+g.away) }
+func isFav(g game) bool { return favGame(teamGroupOf(g.league), g.home, g.away) }
 
 // ---------------------------------------------------------------- Zustand
 var (
@@ -571,6 +572,7 @@ func mainProc(hwnd, msg, wParam, lParam uintptr) uintptr {
 		status = m
 		invalidate(hwnd)
 		schedBuild()
+		teamsRebuild()
 		return 0
 	case wmPanel:
 		panelsApply(wParam)

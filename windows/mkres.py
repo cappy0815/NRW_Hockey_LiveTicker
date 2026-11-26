@@ -32,7 +32,7 @@ def version_info(ver, strings):
 
 MANIFEST = b'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
-  <assemblyIdentity type="win32" name="EHV.LiveTicker" version="3.5.0.0" processorArchitecture="amd64"/>
+  <assemblyIdentity type="win32" name="EHV.LiveTicker" version="VERSION4" processorArchitecture="amd64"/>
   <description>EHV-NRW Live-Ticker</description>
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
     <security><requestedPrivileges><requestedExecutionLevel level="asInvoker" uiAccess="false"/></requestedPrivileges></security>
@@ -129,7 +129,7 @@ if __name__ == '__main__':
         ('FileVersion', ver), ('InternalName', 'EHV_NRW_LiveTicker'),
         ('LegalCopyright', 'Privates, inoffizielles Tool'), ('OriginalFilename', 'EHV_NRW_LiveTicker.exe'),
         ('ProductName', 'EHV-NRW Live-Ticker'), ('ProductVersion', ver)])},
-        24: {1: MANIFEST}}
+        24: {1: MANIFEST.replace(b"VERSION4", (".".join(ver.split(".")[:3]) + ".0").encode())}}
     if len(sys.argv) > 2:
         icons, grp = icon_resources(sys.argv[2])
         res[3] = dict(icons)

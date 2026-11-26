@@ -50,6 +50,7 @@ var optCols = [2][]optRow{
 		{kind: 1, label: "Spiele hervorheben, wenn ein Team enthält:", key: "fav"},
 		{kind: 3, key: "terms"},
 		{kind: 4, label: "mehrere Begriffe mit Komma trennen, z. B. Neuss, Moers"},
+		{kind: 5, label: "Teams auswählen …", key: "teams"},
 	},
 }
 
@@ -153,7 +154,7 @@ func paintOptions(c *canvas, p *panel, w, h int) {
 			}
 			c.line(x, y, optColW, 22, lbl, ui(7.5, false), cGreyTxt, DT_LEFT)
 		case 5:
-			c.pill(x, y+3, 230, 30, r.label, cDark2, p.hover == "updnow")
+			c.pill(x, y+3, 230, 30, optBtnLabel(r), cDark2, p.hover == r.key)
 		}
 	})
 	c.rect(0, h-66, w, 1, cLine)
@@ -216,6 +217,8 @@ func optClick(p *panel, hv string) {
 				}
 			}
 		}
+	case hv == "teams":
+		teamsOpen(oTerms)
 	case hv == "updnow":
 		updCheck(true)
 	case hv == "save":
@@ -344,7 +347,7 @@ func helpDoc() []docLine {
 		{kind: 5},
 		sec("SPIELLISTE"),
 		it("Doppelklick", "auf ein Spiel öffnet den Ticker (oder „Ticker öffnen“)"),
-		it("Gelb", "hervorgehobene Spiele (Standard: Neuss, in den Optionen änderbar)"),
+		it("Gelb", "hervorgehobene Spiele (Standard: Neuss; unter Optionen › Hervorhebung auch einzelne Teams wählen)"),
 		it("Heute noch", "blass unter der Trennzeile – der Ticker lässt sich schon vor dem Bully öffnen"),
 		it("Grüner Punkt", "für dieses Spiel ist ein Ticker offen; roter Punkt = Spiel läuft"),
 		it("Aktualisieren", "lädt neu – automatisch im eingestellten Abstand, solange das Fenster nicht minimiert ist"),
@@ -353,7 +356,7 @@ func helpDoc() []docLine {
 		it("⚙ / ?", "oben rechts: Optionen und diese Hilfe (auch mit F1)"),
 		it("Einstellungen", "liegen unter %APPDATA%\\EHV-Live-Ticker (Optionen, Töne)"),
 		sec("SPIELPLAN"),
-		it("Reiter", "„Nächste“ (7 Tage), „Ergebnisse“ (letzte 7 Tage), „Meine Spiele“ (hervorgehobene Teams), „Tabellen“ (alle Ligen nach Altersklasse)"),
+		it("Reiter", "„Nächste“ (7 Tage), „Ergebnisse“ (letzte 7 Tage), „Schiris“ (Einteilungen von esrw.de), „Meine Spiele“ (hervorgehobene Teams), „Tabellen“ (alle Ligen nach Altersklasse)"),
 		it("Tabellen", "Ligen der eigenen Teams stehen oben – Klick auf eine Liga öffnet die Tabelle"),
 		it("RED+", "Steckbrief: Button mit dem RED+-Logo öffnet das Spiel im Stream – nur, wenn ein Link vorliegt. Ein-/Ausschalten unter Optionen › LINKS"),
 		it("Doppelklick", "Steckbrief: Halle, Drittel, Torschützen – Halle anklicken = Route in Google Maps"),
@@ -388,6 +391,7 @@ func helpDoc() []docLine {
 }
 
 var changelog = [][2]string{
+	{"3.6", "Optionen › Hervorhebung: „Teams auswählen“ – einzelne Mannschaften je Altersklasse hervorheben (bleibt auch in neuen Runden erhalten)|Spielplan: neuer Reiter „Schiris“ mit den Schiedsrichter-Einteilungen von esrw.de; Doppelklick auf ein Spiel öffnet den Steckbrief|Meine Spiele und Tabellen richten sich nach der Teamauswahl"},
 	{"3.5", "RED+-Knopf auch im Spielplan (je Spiel mit Link)|RED+-Knopf in der Liste auch bei laufenden Spielen"},
 	{"3.4", "Optionen: Ergebnis der Update-Prüfung steht im Fenster|Update-Download: Programm wird danach beendet (EXE-Pfad wird angezeigt)|RED+-Knopf in der Liste (Logo-Knopf, abschaltbar) und im Steckbrief in voller Höhe|Liste: Liga ohne „Hauptrunde“ und Saison, Spielzeit kürzer und lesbar"},
 	{"3.3", "Steckbrief: RED+-Button mit Logo, wenn ein Stream-Link vorliegt|Optionen › LINKS: RED+ Button ein-/ausschalten"},

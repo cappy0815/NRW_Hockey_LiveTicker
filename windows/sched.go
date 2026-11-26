@@ -139,11 +139,12 @@ type srow struct {
 	text string
 	div  string // kind 3: Liga (Division-ID)
 	sub  string // kind 3: "x von y Spielen gespielt"
-	fav  bool   // kind 3: Liga mit hervorgehobenem Team
+	fav  bool   // kind 3/4: hervorgehoben
+	tm   string // kind 4: Anstoßzeit (Schiri-Reiter)
 }
 
-func schedRows(all []sgame, tab int, fav func(string) bool) ([]srow, int) {
-	if tab == 3 {
+func schedRows(all []sgame, tab int, fav func(*sgame) bool) ([]srow, int) {
+	if tab == 4 {
 		return leagueRows(all, fav)
 	}
 	today := dayKey(0)
@@ -161,8 +162,8 @@ func schedRows(all []sgame, tab int, fav func(string) bool) ([]srow, int) {
 			ok = g.status != 4 && k >= today && k <= dayKey(7)
 		case 1:
 			ok = g.status == 4 && k >= dayKey(-7) && k <= today
-		case 2:
-			ok = fav(g.home+"|"+g.away) && (g.status == 4 || k >= today)
+		case 3:
+			ok = fav(g) && (g.status == 4 || k >= today)
 		}
 		if ok {
 			seen[g.id] = true
@@ -176,7 +177,7 @@ func schedRows(all []sgame, tab int, fav func(string) bool) ([]srow, int) {
 		for i := len(pick) - 1; i >= 0; i-- {
 			order = append(order, pick[i])
 		}
-	case 2: // kommende aufsteigend, dann die letzten 10 Ergebnisse absteigend
+	case 3: // kommende aufsteigend, dann die letzten 10 Ergebnisse absteigend
 		for _, g := range pick {
 			if g.status != 4 {
 				order = append(order, g)
@@ -196,7 +197,7 @@ func schedRows(all []sgame, tab int, fav func(string) bool) ([]srow, int) {
 		order = pick
 	}
 	var rows []srow
-	if tab == 2 && len(order) > 0 && order[0] != nil {
+	if tab == 3 && len(order) > 0 && order[0] != nil {
 		rows = append(rows, srow{kind: 2, text: "KOMMENDE SPIELE"})
 	}
 	last := ""
@@ -300,7 +301,7 @@ type ligaInfo struct {
 	fav               bool
 }
 
-func leagueRows(all []sgame, fav func(string) bool) ([]srow, int) {
+func leagueRows(all []sgame, fav func(*sgame) bool) ([]srow, int) {
 	m := map[string]*ligaInfo{}
 	var order []string
 	seen := map[string]bool{}
@@ -322,7 +323,7 @@ func leagueRows(all []sgame, fav func(string) bool) ([]srow, int) {
 		if g.status == 4 {
 			li.done++
 		}
-		if fav(g.home + "|" + g.away) {
+		if fav(g) {
 			li.fav = true
 		}
 	}
